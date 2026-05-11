@@ -18,7 +18,7 @@
         body { margin: 0; overflow: hidden; background-color: #1e1e1e; font-family: 'Inter', sans-serif; user-select: none; color: #ededed; }
         
         #css-container, #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; }
-        #css-container { z-index: 1; pointer-events: auto; } /* Allow CSS events for TransformControls */
+        #css-container { z-index: 1; pointer-events: auto; }
         #canvas-container { z-index: 2; pointer-events: none; }
         
         /* Studio UI Layer */
@@ -101,33 +101,19 @@
 </head>
 <body>
 
-    <!-- WebGL & CSS3D Containers -->
     <div id="css-container"></div>
     <div id="canvas-container"></div>
 
-    <!-- UI Layer -->
     <div id="ui-layer">
-        
         <!-- Top Menu Bar -->
         <div id="topbar">
             <div class="flex items-center gap-2">
                 <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-black text-lg mr-2 shadow-inner">W</div>
                 <div class="text-sm font-bold text-gray-200 tracking-wide mr-6">WEBLOX STUDIO</div>
-                
                 <div class="h-5 w-px bg-gray-600 mx-2"></div>
-                
-                <button class="menu-btn" onclick="window.clearLevel()">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
-                    Clear
-                </button>
-                <button class="menu-btn" onclick="window.loadLevel()">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
-                    Load Local
-                </button>
-                <button class="menu-btn" onclick="window.saveLevel()">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
-                    Save Local
-                </button>
+                <button class="menu-btn" onclick="window.clearLevel()"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg> Clear</button>
+                <button class="menu-btn" onclick="window.loadLevel()"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg> Load Local</button>
+                <button class="menu-btn" onclick="window.saveLevel()"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Save Local</button>
                 <div class="h-5 w-px bg-gray-600 mx-2 hidden md:block"></div>
                 <div id="coords-display" class="text-[11px] text-gray-400 font-mono tracking-widest hidden md:block w-36 text-center bg-[#1e1e1e] p-1.5 rounded border border-[#333]">X: 0.0 Y: 0.0 Z: 0.0</div>
                 <button id="btn-env" class="menu-btn" onclick="window.cycleEnvironment()">🌞 Day</button>
@@ -135,20 +121,10 @@
             
             <div class="flex items-center gap-3">
                 <span id="mode-indicator" class="text-xs bg-blue-900/50 border border-blue-700 text-blue-300 px-3 py-1 rounded font-bold mr-4">EDIT MODE</span>
-                
-                <button id="btn-play" class="menu-btn play-btn" onclick="window.toggleEngineMode()">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> PLAYTEST
-                </button>
-                <button id="btn-stop" class="menu-btn stop-btn" onclick="window.toggleEngineMode()">
-                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg> STOP
-                </button>
-                
+                <button id="btn-play" class="menu-btn play-btn" onclick="window.toggleEngineMode()"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> PLAYTEST</button>
+                <button id="btn-stop" class="menu-btn stop-btn" onclick="window.toggleEngineMode()"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg> STOP</button>
                 <div class="h-5 w-px bg-gray-600 mx-2"></div>
-                
-                <button class="menu-btn primary" onclick="window.showPublishModal()">
-                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
-                    Publish to Weblox
-                </button>
+                <button class="menu-btn primary" onclick="window.showPublishModal()"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg> Publish to Weblox</button>
             </div>
         </div>
 
@@ -157,9 +133,8 @@
             <div class="w-64 h-4 bg-black/80 rounded-full overflow-hidden border border-white/20 mb-2 shadow-lg">
                 <div id="health-fill" class="h-full bg-green-500 w-full transition-all duration-200"></div>
             </div>
-            <div class="flex gap-3 bg-black/60 p-2.5 rounded-2xl backdrop-blur-md border border-white/10 shadow-xl">
-                <div class="w-14 h-14 bg-white/20 rounded-xl flex flex-col items-center justify-center border-2 border-white/50 text-white font-bold"><span class="text-2xl mb-0.5">💣</span><span class="text-[10px] bg-black/50 px-2 rounded-full">1</span></div>
-                <div class="w-14 h-14 bg-white/20 rounded-xl flex flex-col items-center justify-center border-2 border-white/50 text-white font-bold"><span class="text-2xl mb-0.5">🪝</span><span class="text-[10px] bg-black/50 px-2 rounded-full">E</span></div>
+            <div id="inventory-hud" class="flex gap-3 bg-black/60 p-2.5 rounded-2xl backdrop-blur-md border border-white/10 shadow-xl pointer-events-auto">
+                <!-- Populated via JS -->
             </div>
         </div>
 
@@ -175,8 +150,6 @@
         <div id="editor-tools">
             <div id="bottom-toolbar">
                 <div class="flex gap-8 items-center w-full justify-center">
-                    
-                    <!-- Tool Mode -->
                     <div class="flex flex-col gap-1 items-center">
                         <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Active Tool</span>
                         <div class="flex bg-[#1e1e1e] p-1 rounded border border-[#333]">
@@ -188,27 +161,16 @@
                             <div id="tool-script" class="type-slot !border-none !m-0" onclick="window.setEditorTool('SCRIPT')">📜 Script</div>
                         </div>
                     </div>
-
                     <div class="h-8 w-px bg-[#333]"></div>
-
-                    <!-- Shapes -->
                     <div class="flex flex-col gap-1 items-center">
                         <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Parts & Logic</span>
-                        <div class="tool-row" id="type-bar">
-                            <!-- Populated via JS -->
-                        </div>
+                        <div class="tool-row" id="type-bar"></div>
                     </div>
-
                     <div class="h-8 w-px bg-[#333]"></div>
-
-                    <!-- Colors -->
                     <div class="flex flex-col gap-1 items-center">
                         <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Material Color</span>
-                        <div class="tool-row" id="color-bar">
-                            <!-- Populated via JS -->
-                        </div>
+                        <div class="tool-row" id="color-bar"></div>
                     </div>
-
                 </div>
             </div>
         </div>
@@ -219,14 +181,12 @@
         <div class="bg-[#1e1e1e] p-8 rounded-xl border border-[#333] shadow-2xl text-center w-[450px]">
             <h1 class="text-2xl font-black mb-2 text-white">Weblox Studio</h1>
             <p class="text-sm text-gray-400 mb-6">Click anywhere to enter the viewport.</p>
-            
             <div class="bg-[#252526] p-5 rounded-lg text-sm text-left grid grid-cols-2 gap-y-3 border border-[#333] text-gray-300">
                 <div class="col-span-2 text-center text-gray-400 font-bold border-b border-[#333] pb-2 mb-1 text-xs uppercase tracking-widest">Camera & Interaction</div>
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">W A S D</b> Move</div>
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">Space/Shift</b> Fly Up/Down</div>
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">Hold RMB</b> Orbit (3rd Person)</div>
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">L-Click</b> Use Tool / Interact</div>
-                
                 <div class="col-span-2 text-center text-gray-400 font-bold border-b border-[#333] pb-2 mb-1 mt-2 text-xs uppercase tracking-widest">Advanced Tools</div>
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">R</b> Rotate Block</div>
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">+ / -</b> Scale Block</div>
@@ -238,36 +198,13 @@
         </div>
     </div>
 
-    <!-- Auth Modal -->
-    <div id="auth-modal" class="hidden flex-col items-center justify-center absolute inset-0 bg-black/90 z-[400] text-white pointer-events-auto backdrop-blur-xl">
-        <div class="bg-[#1e1e1e] p-8 rounded-xl border border-[#333] w-[400px] shadow-2xl">
-            <h2 class="text-2xl font-black text-white mb-2 flex items-center gap-2">Welcome to Weblox</h2>
-            <p class="text-sm text-gray-400 mb-6">Sign in or create an account to save and publish your worlds to the cloud.</p>
-            
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 block">Email</label>
-            <input type="email" id="auth-email" placeholder="you@email.com" class="w-full bg-[#252526] border border-[#333] rounded p-3 mb-4 text-white focus:outline-none focus:border-blue-500 transition-colors" autocomplete="off">
-            
-            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 block">Password</label>
-            <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-[#252526] border border-[#333] rounded p-3 mb-8 text-white focus:outline-none focus:border-blue-500 transition-colors" autocomplete="off">
-            
-            <div class="flex flex-col gap-3">
-                <button class="bg-[#0e639c] hover:bg-[#1177bb] w-full py-3 rounded font-bold text-sm transition-colors shadow-lg" onclick="window.loginAccount()">Sign In</button>
-                <button class="bg-[#333] hover:bg-[#444] w-full py-3 rounded font-bold text-sm transition-colors" onclick="window.registerAccount()">Create Account</button>
-                <div class="my-3 border-t border-[#333]"></div>
-                <button class="text-gray-400 hover:text-white font-semibold text-sm transition-colors" onclick="window.loginGuest()">Continue as Guest</button>
-            </div>
-        </div>
-    </div>
-
     <!-- Publish Modal -->
     <div id="publish-modal" class="hidden flex-col items-center justify-center absolute inset-0 bg-black/80 z-[300] text-white pointer-events-auto backdrop-blur-sm">
         <div class="bg-[#1e1e1e] p-8 rounded-xl border border-[#333] w-[400px] shadow-2xl">
             <h2 class="text-xl font-black text-white mb-2 flex items-center gap-2"><svg class="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg> Publish Experience</h2>
             <p class="text-sm text-gray-400 mb-6">Upload your world to the Weblox Cloud. It will instantly appear on the Player Client for others to join!</p>
-            
             <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 block">Experience Name</label>
             <input type="text" id="publish-name" placeholder="e.g., Epic Obby v1" class="w-full bg-[#252526] border border-[#333] rounded p-3 mb-8 text-white focus:outline-none focus:border-blue-500 transition-colors" autocomplete="off" maxlength="30">
-            
             <div class="flex justify-end gap-3">
                 <button class="bg-[#333] hover:bg-[#444] px-5 py-2.5 rounded font-bold text-sm transition-colors" onclick="window.closePublishModal()">Cancel</button>
                 <button class="bg-[#0e639c] hover:bg-[#1177bb] px-6 py-2.5 rounded font-bold text-sm transition-colors shadow-lg" onclick="window.submitPublish()">Publish to Cloud</button>
@@ -275,24 +212,40 @@
         </div>
     </div>
 
-    <!-- Script / HTML Editor Modal -->
+    <!-- Script Editor Modal -->
     <div id="script-modal" class="hidden flex-col items-center justify-center absolute inset-0 bg-black/80 z-[300] text-white pointer-events-auto backdrop-blur-sm">
         <div class="bg-[#1e1e1e] rounded-xl border border-[#333] w-[800px] shadow-2xl flex flex-col overflow-hidden">
             <div class="bg-[#252526] border-b border-[#333] p-4 flex justify-between items-center">
                 <div>
                     <h2 id="script-modal-title" class="text-lg font-black text-white flex items-center gap-2">📜 Block Script Editor</h2>
-                    <p id="script-modal-desc" class="text-xs text-gray-400 mt-1 font-medium">Write JavaScript to run during Play Mode. Variables: <code>block</code>, <code>player</code>, <code>game</code>, <code>time</code>, <code>delta</code>.</p>
+                    <p id="script-modal-desc" class="text-xs text-gray-400 mt-1 font-medium">Write JavaScript to run during Play Mode. Variables: <code>block</code>, <code>player</code>, <code>game</code>, <code>time</code>, <code>delta</code>.<br>For Tools, define <code>block.userData.onUse = () => { ... }</code> for custom actions!</p>
                 </div>
                 <button class="text-gray-400 hover:text-white" onclick="window.closeScriptModal()"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
-            
             <div class="p-4 bg-[#1e1e1e]">
                 <textarea id="block-script-input" class="w-full h-[400px] bg-[#1e1e1e] border border-[#333] rounded p-4 text-[#d4d4d4] font-mono text-sm focus:outline-none focus:border-[#0e639c] transition-colors leading-relaxed" spellcheck="false"></textarea>
             </div>
-            
             <div class="bg-[#252526] border-t border-[#333] p-4 flex justify-end gap-3">
                 <button class="bg-[#333] hover:bg-[#444] px-6 py-2 rounded font-bold text-sm transition-colors" onclick="window.closeScriptModal()">Cancel</button>
                 <button class="bg-[#0e639c] hover:bg-[#1177bb] px-8 py-2 rounded font-bold text-sm transition-colors shadow-lg" onclick="window.saveScript()">Apply Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="hidden flex-col items-center justify-center absolute inset-0 bg-black/90 z-[400] text-white pointer-events-auto backdrop-blur-xl">
+        <div class="bg-[#1e1e1e] p-8 rounded-xl border border-[#333] w-[400px] shadow-2xl">
+            <h2 class="text-2xl font-black text-white mb-2 flex items-center gap-2">Welcome to Weblox</h2>
+            <p class="text-sm text-gray-400 mb-6">Sign in or create an account to save and publish your worlds to the cloud.</p>
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 block">Email</label>
+            <input type="email" id="auth-email" placeholder="you@email.com" class="w-full bg-[#252526] border border-[#333] rounded p-3 mb-4 text-white focus:outline-none focus:border-blue-500 transition-colors" autocomplete="off">
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 block">Password</label>
+            <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-[#252526] border border-[#333] rounded p-3 mb-8 text-white focus:outline-none focus:border-blue-500 transition-colors" autocomplete="off">
+            <div class="flex flex-col gap-3">
+                <button class="bg-[#0e639c] hover:bg-[#1177bb] w-full py-3 rounded font-bold text-sm transition-colors shadow-lg" onclick="window.loginAccount()">Sign In</button>
+                <button class="bg-[#333] hover:bg-[#444] w-full py-3 rounded font-bold text-sm transition-colors" onclick="window.registerAccount()">Create Account</button>
+                <div class="my-3 border-t border-[#333]"></div>
+                <button class="text-gray-400 hover:text-white font-semibold text-sm transition-colors" onclick="window.loginGuest()">Continue as Guest</button>
             </div>
         </div>
     </div>
@@ -306,143 +259,25 @@
         
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, addDoc, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
+        // --- GLOBAL STATE ---
         let db, auth, currentUser = null;
         const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-weblox-id';
         const DEFAULT_TV_HTML = "<style>body{margin:0;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background:#111;color:#4fc3f7;font-family:sans-serif;}</style><div><h1 style='text-align:center; font-size:50px;'>HTML TV</h1><p style='text-align:center; color:#ccc; font-size:24px; margin-bottom: 20px;'>You can naturally click and type here since mouse is free in 3rd person!</p><input type='text' style='padding:15px; font-size:24px; width:80%; border-radius:8px; border:2px solid #4fc3f7; background:#222; color:#fff;' placeholder='Type something...' /></div>";
 
-        // Physics & Explosions state
         let isRagdolled = false;
         let ragdollTimer = 0;
         let ragdollParts = [];
         const activeBombs = [];
         const explosions = [];
 
+        let inventory = [];
+        let equippedToolIndex = -1;
+        let equippedToolMesh = null;
+
         let myAvatarColors = JSON.parse(localStorage.getItem('weblox_avatar')) || { head: 0xf1c27d, torso: 0x1976D2, arms: 0xf1c27d, legs: 0x388E3C };
 
-        try {
-            const firebaseConfig = {
-                apiKey: "AIzaSyCN9lkBMMTaEk8FR4TKgBqcvDkVFtnDUrk",
-                authDomain: "weblox-1f8b0.firebaseapp.com",
-                projectId: "weblox-1f8b0",
-                storageBucket: "weblox-1f8b0.firebasestorage.app",
-                messagingSenderId: "765567900101",
-                appId: "1:765567900101:web:fa03494970c3019f1e93ac",
-                measurementId: "G-D7E2MT985J"
-            };
-            const app = initializeApp(firebaseConfig);
-            auth = getAuth(app);
-            db = getFirestore(app);
-
-            const initAuth = async () => {
-                try {
-                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                        await signInWithCustomToken(auth, __initial_auth_token);
-                    }
-                } catch(e) { 
-                    console.error("Auth error, falling back to anonymous", e); 
-                    await signInAnonymously(auth);
-                }
-            };
-            initAuth();
-            
-            let authInitialized = false;
-            onAuthStateChanged(auth, (user) => { 
-                currentUser = user; 
-                if (!authInitialized) {
-                    authInitialized = true;
-                    // If no session exists, prompt them to log in or pick guest
-                    if (!user && !(typeof __initial_auth_token !== 'undefined' && __initial_auth_token)) {
-                        window.showAuthModal();
-                    }
-                }
-            });
-        } catch(e) { console.error("Firebase init failed:", e); }
-
-        // --- AUTH FUNCTIONS ---
-        window.showAuthModal = () => { document.getElementById('auth-modal').classList.replace('hidden', 'flex'); unlockPointer(); };
-        window.closeAuthModal = () => document.getElementById('auth-modal').classList.replace('flex', 'hidden');
-        
-        window.registerAccount = async () => {
-            const email = document.getElementById('auth-email').value.trim();
-            const pass = document.getElementById('auth-password').value;
-            if(!email || !pass) return showNotification("Please enter email and password");
-            try {
-                await createUserWithEmailAndPassword(auth, email, pass);
-                window.closeAuthModal();
-                showNotification("Account created successfully!");
-            } catch(e) { showNotification(e.message); }
-        };
-
-        window.loginAccount = async () => {
-            const email = document.getElementById('auth-email').value.trim();
-            const pass = document.getElementById('auth-password').value;
-            if(!email || !pass) return showNotification("Please enter email and password");
-            try {
-                await signInWithEmailAndPassword(auth, email, pass);
-                window.closeAuthModal();
-                showNotification("Signed in successfully!");
-            } catch(e) { showNotification(e.message); }
-        };
-
-        window.loginGuest = async () => {
-            try {
-                await signInAnonymously(auth);
-                window.closeAuthModal();
-                showNotification("Playing as Guest");
-            } catch(e) { showNotification(e.message); }
-        };
-
-        // --- AUDIO ENGINE ---
-        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playSound(type) {
-            if(audioCtx.state === 'suspended') audioCtx.resume();
-            const osc = audioCtx.createOscillator();
-            const gain = audioCtx.createGain();
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            
-            const now = audioCtx.currentTime;
-            if (type === 'jump') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(300, now);
-                osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
-                gain.gain.setValueAtTime(0.2, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
-            } else if (type === 'boom') {
-                osc.type = 'square';
-                osc.frequency.setValueAtTime(100, now);
-                osc.frequency.exponentialRampToValueAtTime(20, now + 0.5);
-                gain.gain.setValueAtTime(0.4, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
-                osc.start(now); osc.stop(now + 0.5);
-            } else if (type === 'hurt') {
-                osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, now);
-                osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
-                gain.gain.setValueAtTime(0.3, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
-                osc.start(now); osc.stop(now + 0.2);
-            } else if (type === 'grapple') {
-                osc.type = 'triangle';
-                osc.frequency.setValueAtTime(800, now);
-                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
-                osc.start(now); osc.stop(now + 0.1);
-            } else if (type === 'place') {
-                osc.type = 'sine';
-                osc.frequency.setValueAtTime(800, now);
-                osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
-                gain.gain.setValueAtTime(0.1, now);
-                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
-                osc.start(now); osc.stop(now + 0.05);
-            }
-        }
-
-        // --- ENGINE CONSTANTS & STATE ---
         const UNIT_SIZE = 5;
         let ENGINE_MODE = 'EDIT'; 
         let EDITOR_TOOL = 'BUILD'; 
@@ -452,7 +287,6 @@
         let currentPlaceScale = 1;
         let isNoclip = true;
 
-        // Engine Object Types
         const BLOCK_TYPES = {
             NORMAL: { id: 'Normal', name: 'Part', colorOverride: null, shape: 'box' },
             GLASS: { id: 'Glass', name: 'Glass', colorOverride: null, shape: 'box', matParams: { transparent: true, opacity: 0.4 } },
@@ -463,6 +297,7 @@
             SPHERE: { id: 'Sphere', name: 'Sphere', colorOverride: null, shape: 'sphere' },
             CONE: { id: 'Cone', name: 'Spike', colorOverride: null, shape: 'cone' },
             TORUS: { id: 'Torus', name: 'Ring', colorOverride: null, shape: 'torus' },
+            TOOL: { id: 'Tool', name: 'Tool Part', colorOverride: 0xFF00FF, shape: 'box', isTool: true },
             CONVEYOR: { id: 'Conveyor', name: 'Conveyor', colorOverride: 0x444444, shape: 'box' },
             CHECKPOINT: { id: 'Checkpoint', name: 'Checkpoint', colorOverride: 0x00FF00, shape: 'box', isNeon: true },
             LAVA: { id: 'Lava', name: 'Kill Brick', colorOverride: 0xFF2200, shape: 'box' },
@@ -530,10 +365,58 @@
 
         window.showNotification = function(msg) {
             const notif = document.getElementById('notification');
+            if(!notif) return;
             notif.innerText = msg;
             notif.classList.add('show');
             setTimeout(() => notif.classList.remove('show'), 3000);
         }
+
+        window.updateInventoryHUD = function() {
+            const hud = document.getElementById('inventory-hud');
+            if(!hud) return;
+            
+            let html = `
+                <div class="w-14 h-14 ${equippedToolIndex === -1 ? 'bg-white/40 border-blue-400 scale-110' : 'bg-white/20 border-white/50 hover:bg-white/30'} rounded-xl flex flex-col items-center justify-center border-2 text-white font-bold cursor-pointer transition-all" onclick="window.equipTool(-1)">
+                    <span class="text-2xl mb-0.5">💣</span><span class="text-[10px] bg-black/50 px-2 rounded-full">1</span>
+                </div>
+            `;
+            
+            inventory.forEach((tool, i) => {
+                const isEquipped = (equippedToolIndex === i);
+                html += `
+                    <div class="w-14 h-14 ${isEquipped ? 'bg-white/40 border-blue-400 scale-110' : 'bg-white/20 border-white/50 hover:bg-white/30'} rounded-xl flex flex-col items-center justify-center border-2 text-white font-bold cursor-pointer transition-all" onclick="window.equipTool(${i})">
+                        <span class="text-2xl mb-0.5" style="color: #${tool.userData.colorHex.toString(16).padStart(6,'0')}">🔧</span><span class="text-[10px] bg-black/50 px-2 rounded-full">${i + 2}</span>
+                    </div>
+                `;
+            });
+            
+            html += `
+                <div class="w-14 h-14 bg-white/20 rounded-xl flex flex-col items-center justify-center border-2 border-white/50 text-white font-bold opacity-80 cursor-default ml-4">
+                    <span class="text-2xl mb-0.5">🪝</span><span class="text-[10px] bg-black/50 px-2 rounded-full">E</span>
+                </div>
+            `;
+            
+            hud.innerHTML = html;
+        }
+
+        window.equipTool = function(index) {
+            if (index >= inventory.length) return;
+            
+            equippedToolIndex = index;
+            window.updateInventoryHUD();
+            playSound('place');
+
+            if (equippedToolMesh) {
+                scene.remove(equippedToolMesh);
+                equippedToolMesh = null;
+            }
+
+            if (index >= 0 && inventory[index]) {
+                const tool = inventory[index];
+                equippedToolMesh = new THREE.Mesh(tool.geometry, tool.material);
+                scene.add(equippedToolMesh); // Positioned in animate loop
+            }
+        };
 
         // --- POINTER LOCK AND INPUT LOGIC ---
         let isPointerLocked = false;
@@ -551,10 +434,8 @@
             isPointerLocked = (document.pointerLockElement === document.body);
             
             if (!isPointerLocked) {
-                // If we exit pointer lock, stop moving
                 moveFwd = false; moveBwd = false; moveL = false; moveR = false;
                 
-                // Show pause menu if we unlocked from 1st person and didn't open a tool/modal
                 if (activeCamera === camera && !isInteracting && !isTransformDragging &&
                     document.getElementById('script-modal').classList.contains('hidden') && 
                     document.getElementById('publish-modal').classList.contains('hidden') &&
@@ -566,12 +447,11 @@
             }
         });
 
-        // Click to resume
         document.getElementById('blocker').addEventListener('click', () => {
             if (activeCamera === camera) {
-                lockPointer(); // Lock back in 1st person
+                lockPointer(); 
             } else {
-                document.getElementById('blocker').classList.add('hidden'); // Just hide menu in 3rd person
+                document.getElementById('blocker').classList.add('hidden');
             }
         });
 
@@ -605,19 +485,16 @@
         const thirdPersonCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
         let activeCamera = camera;
 
-        // Transform Controls
         const transformControl = new TransformControls(activeCamera, cssRenderer.domElement);
         transformControl.addEventListener('dragging-changed', function (event) {
             isTransformDragging = event.value;
         });
         scene.add(transformControl);
         
-        // --- CUSTOM FREE/ORBIT CONTROLS ---
         const playerObject = new THREE.Group();
         playerObject.position.set(0, 9, 0);
         scene.add(playerObject);
 
-        // Flashlight Hookup
         const flashlight = new THREE.SpotLight(0xffffff, 0, 150, Math.PI/5, 0.5, 1);
         flashlight.position.set(0, 0, 0);
         flashlight.target.position.set(0, 0, -1);
@@ -638,7 +515,6 @@
         dirLight.shadow.camera.top = 200; dirLight.shadow.camera.bottom = -200;
         scene.add(dirLight);
 
-        // Environment Cycle
         const ENVIRONMENTS = [
             { name: '🌞 Day', sky: 0x87CEEB, fog: 0x87CEEB, light: 0.8 },
             { name: '🌅 Sunset', sky: 0xff7e67, fog: 0xff7e67, light: 0.5 },
@@ -679,7 +555,6 @@
         }
         createBaseplate();
 
-        // Standard Geometries
         const blockGeo = new THREE.BoxGeometry(UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
         const cylinderGeo = new THREE.CylinderGeometry(UNIT_SIZE/2, UNIT_SIZE/2, UNIT_SIZE, 16);
         const sphereGeo = new THREE.SphereGeometry(UNIT_SIZE/2, 16, 16);
@@ -694,7 +569,6 @@
         const rampGeo = new THREE.ExtrudeGeometry(rampShape, { depth: UNIT_SIZE, bevelEnabled: false });
         rampGeo.center();
 
-        // Ghost Block Hologram Setup
         const ghostBlock = new THREE.Group();
         const ghostMesh = new THREE.Mesh(blockGeo, new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.5}));
         const ghostEdgesMat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.8, transparent: true });
@@ -756,7 +630,6 @@
         myAvatarMesh.userData.head.visible = false; 
         scene.add(myAvatarMesh);
 
-        // Standardized Garbage Collection
         function destroyBlock(obj) {
             if(obj.userData.cssDiv && obj.userData.cssDiv.parentNode) {
                 obj.userData.cssDiv.parentNode.removeChild(obj.userData.cssDiv);
@@ -795,6 +668,10 @@
             mesh.castShadow = true; mesh.receiveShadow = true;
 
             mesh.scale.set(sx, sy, sz);
+
+            if (typeDef.isTool) {
+                mesh.scale.set(sx * 0.5, sy * 0.5, sz * 0.5);
+            }
 
             mesh.userData = { type: typeId, colorHex: colorHex, script: scriptCode };
 
@@ -858,7 +735,7 @@
                 document.getElementById('block-script-input').placeholder = "<style>h1{color:red;}</style>\n<h1>Weblox</h1>\n<script>alert('Running!');</sc"+"ript>";
             } else {
                 document.getElementById('script-modal-title').innerHTML = "📜 Block Script Editor";
-                document.getElementById('script-modal-desc').innerHTML = "Write JavaScript to control this block in Play Mode. Variables: <code>block</code>, <code>player</code>, <code>game</code>, <code>time</code>, <code>delta</code>.";
+                document.getElementById('script-modal-desc').innerHTML = "Write JavaScript to control this block in Play Mode. Variables: <code>block</code>, <code>player</code>, <code>game</code>, <code>time</code>, <code>delta</code>.<br>For Tools, define <code>block.userData.onUse = () => { ... }</code> for custom actions!";
                 document.getElementById('block-script-input').placeholder = "// Example: Hover and interact\nif (!block.userData.init) {\n  block.userData.init = true;\n  block.userData.onClick = () => game.explode(block.position);\n  block.userData.onTouch = () => game.bounce(200);\n}\nblock.position.y += Math.sin(time / 200) * 0.1;";
             }
 
@@ -886,6 +763,152 @@
             return active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
         };
 
+        // --- AUTH & MULTIPLAYER SETUP ---
+        try {
+            const firebaseConfig = {
+                apiKey: "AIzaSyCN9lkBMMTaEk8FR4TKgBqcvDkVFtnDUrk",
+                authDomain: "weblox-1f8b0.firebaseapp.com",
+                projectId: "weblox-1f8b0",
+                storageBucket: "weblox-1f8b0.firebasestorage.app",
+                messagingSenderId: "765567900101",
+                appId: "1:765567900101:web:fa03494970c3019f1e93ac",
+                measurementId: "G-D7E2MT985J"
+            };
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    } else {
+                        window.showAuthModal();
+                    }
+                } catch(e) { 
+                    console.warn("Auth token mismatch (expected with custom Firebase config). Showing login modal."); 
+                    window.showAuthModal();
+                }
+            };
+            initAuth();
+
+            let authInitialized = false;
+            onAuthStateChanged(auth, (user) => { 
+                currentUser = user; 
+                if (!authInitialized) {
+                    authInitialized = true;
+                    if (!user && !(typeof __initial_auth_token !== 'undefined' && __initial_auth_token)) {
+                        window.showAuthModal();
+                    }
+                }
+                if (user) {
+                    window.closeAuthModal();
+                    initMultiplayer();
+                }
+            });
+        } catch(e) { console.error("Firebase init failed:", e); }
+
+        window.showAuthModal = () => { document.getElementById('auth-modal').classList.replace('hidden', 'flex'); unlockPointer(); };
+        window.closeAuthModal = () => document.getElementById('auth-modal').classList.replace('flex', 'hidden');
+        
+        window.registerAccount = async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const pass = document.getElementById('auth-password').value;
+            if(!email || !pass) return window.showNotification("Please enter email and password");
+            try {
+                await createUserWithEmailAndPassword(auth, email, pass);
+                window.closeAuthModal();
+                window.showNotification("Account created successfully!");
+            } catch(e) { window.showNotification(e.message); }
+        };
+
+        window.loginAccount = async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const pass = document.getElementById('auth-password').value;
+            if(!email || !pass) return window.showNotification("Please enter email and password");
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                window.closeAuthModal();
+                window.showNotification("Signed in successfully!");
+            } catch(e) { window.showNotification(e.message); }
+        };
+
+        window.loginGuest = async () => {
+            try {
+                await signInAnonymously(auth);
+                window.closeAuthModal();
+                window.showNotification("Playing as Guest");
+            } catch(e) { window.showNotification(e.message); }
+        };
+
+        let currentRoomId = 'studio_test';
+        let unsubscribeRoom = null;
+        const otherPlayers = {}; 
+
+        function joinRoom(roomId) {
+            currentRoomId = roomId;
+            for(let id in otherPlayers) {
+                scene.remove(otherPlayers[id]);
+                delete otherPlayers[id];
+            }
+            if (unsubscribeRoom) unsubscribeRoom();
+
+            const roomCol = collection(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId, 'players');
+            try {
+                unsubscribeRoom = onSnapshot(roomCol, (snapshot) => {
+                    snapshot.forEach(docSnap => {
+                        const data = docSnap.data();
+                        if (Date.now() - data.time > 10000 || docSnap.id === currentUser.uid) return;
+                        
+                        if (!otherPlayers[docSnap.id]) {
+                            const mesh = createAvatarMesh(data.avatar);
+                            scene.add(mesh);
+                            otherPlayers[docSnap.id] = mesh;
+                        }
+                        const player = otherPlayers[docSnap.id];
+                        if(data.avatar) {
+                            player.userData.mats.head.color.setHex(data.avatar.head);
+                            player.userData.mats.torso.color.setHex(data.avatar.torso);
+                            player.userData.mats.arms.color.setHex(data.avatar.arms);
+                            player.userData.mats.legs.color.setHex(data.avatar.legs);
+                        }
+                        player.userData.targetPos.set(data.x, data.y - 9, data.z); 
+                        player.userData.targetRot = data.ry;
+                        player.userData.lastUpdate = Date.now();
+                    });
+                }, (err) => console.warn("Multiplayer sync error", err));
+            } catch(e) {}
+        }
+
+        let lastSyncPos = new THREE.Vector3();
+        function initMultiplayer() {
+            if(!db || !currentUser) return;
+            currentRoomId = 'studio_' + currentUser.uid;
+            joinRoom(currentRoomId);
+
+            setInterval(async () => {
+                if(!currentUser || !db) return;
+                const pos = playerObject.position;
+                if (pos.distanceTo(lastSyncPos) > 0.5 || Math.random() < 0.1) {
+                    lastSyncPos.copy(pos);
+                    try {
+                        const myRoomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', currentRoomId, 'players', currentUser.uid);
+                        await setDoc(myRoomRef, { x: pos.x, y: pos.y, z: pos.z, ry: cameraYaw, time: Date.now(), avatar: myAvatarColors });
+                    } catch(e) {} 
+                }
+            }, 150);
+
+            setInterval(() => {
+                const now = Date.now();
+                for(let id in otherPlayers) {
+                    if(now - otherPlayers[id].userData.lastUpdate > 5000) {
+                        scene.remove(otherPlayers[id]);
+                        delete otherPlayers[id];
+                    }
+                }
+            }, 2000);
+        }
+
         // --- INPUT, PHYSICS & PLAYER STATE ---
         let moveFwd = false, moveBwd = false, moveL = false, moveR = false, moveUp = false, moveDown = false;
         let canJump = false;
@@ -896,9 +919,9 @@
         let activeCheckpoint = null;
         
         const velocity = new THREE.Vector3();
+        const direction = new THREE.Vector3();
         let prevTime = performance.now();
 
-        // Grapple Visuals
         const grappleMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
         const grappleGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
         const grappleLine = new THREE.Line(grappleGeo, grappleMat);
@@ -916,30 +939,54 @@
                 isRightMouseDown = true;
                 mouseMovedDuringRightClick = false;
                 if (activeCamera === thirdPersonCamera) {
-                    lockPointer(); // Lock mouse to screen while orbiting in 3rd person
+                    lockPointer();
                 }
             }
 
-            if (e.button === 0) { // Left Click
+            if (e.button === 0) { 
                 if (isTransformDragging) return;
 
                 if (activeCamera === camera && !isPointerLocked && !isInteracting) {
-                    lockPointer(); // First click into 1st person view locks it
+                    lockPointer(); 
                     return;
                 }
 
-                // If in first person, aim is dead center
                 if (activeCamera === camera) {
                     mouse.x = 0; mouse.y = 0;
+                } else {
+                    mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                    mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
                 }
 
                 raycaster.setFromCamera(mouse, activeCamera);
                 const intersects = raycaster.intersectObjects(objects, false);
 
                 if (ENGINE_MODE === 'PLAY') {
-                    if (!isRagdolled && intersects.length > 0 && intersects[0].distance <= 40) {
-                        const obj = intersects[0].object;
-                        if (obj.userData.onClick) obj.userData.onClick();
+                    if (!isRagdolled) {
+                        if (intersects.length > 0 && intersects[0].distance <= 40) {
+                            const obj = intersects[0].object;
+                            
+                            // Tool Pickup Logic
+                            if (Object.values(BLOCK_TYPES).find(t => t.id === obj.userData.type)?.isTool && !obj.userData.isPickedUp) {
+                                obj.visible = false;
+                                obj.userData.isPickedUp = true;
+                                inventory.push(obj);
+                                window.updateInventoryHUD();
+                                window.showNotification("Equipped Tool!");
+                                playSound('place');
+                                return;
+                            }
+                            
+                            if (obj.userData.onClick) obj.userData.onClick();
+                        }
+                        
+                        // Handle active tool or bomb
+                        if (equippedToolIndex >= 0 && inventory[equippedToolIndex]) {
+                            const tool = inventory[equippedToolIndex];
+                            if (tool.userData.onUse) tool.userData.onUse();
+                        } else if (equippedToolIndex === -1) {
+                            throwBomb();
+                        }
                     }
                     return;
                 }
@@ -973,7 +1020,7 @@
                             currentColorHex = obj.userData.colorHex;
                             currentPlaceScale = obj.scale.x; 
                             currentPlaceRotation = obj.rotation.y;
-                            initUI(); // Re-render selected UI
+                            initUI(); 
                             window.setEditorTool('BUILD');
                             playSound('place');
                             showNotification("Cloned Block Properties!");
@@ -1001,10 +1048,9 @@
             if (e.button === 2) {
                 isRightMouseDown = false;
                 if (activeCamera === thirdPersonCamera && isPointerLocked) {
-                    unlockPointer(); // Un-freeze mouse upon release
+                    unlockPointer(); 
                 }
                 
-                // If the user right-clicked without moving the mouse much, act as a DELETE click
                 if (!mouseMovedDuringRightClick && ENGINE_MODE === 'EDIT' && (EDITOR_TOOL === 'BUILD' || EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'SCALE' || EDITOR_TOOL === 'PAINT' || EDITOR_TOOL === 'CLONE')) {
                     if (activeCamera === camera) { mouse.x = 0; mouse.y = 0; }
                     raycaster.setFromCamera(mouse, activeCamera);
@@ -1018,8 +1064,6 @@
         });
 
         document.addEventListener('mousemove', (e) => {
-            // Apply camera rotation ONLY when mouse is locked natively
-            // (1st person view OR holding right click in 3rd person)
             if (isPointerLocked) {
                 if (activeCamera === camera || (activeCamera === thirdPersonCamera && isRightMouseDown)) {
                     cameraYaw -= e.movementX * 0.003;
@@ -1028,17 +1072,14 @@
                     mouseMovedDuringRightClick = true;
                 }
             } else if (isRightMouseDown && activeCamera === thirdPersonCamera) {
-                // Fallback drag logic for browsers that deny pointer lock dynamically
                 cameraYaw -= e.movementX * 0.003;
                 cameraPitch -= e.movementY * 0.003;
                 cameraPitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, cameraPitch));
                 mouseMovedDuringRightClick = true;
             }
 
-            // Provide accurate raycast mouse coordinates
             if (isPointerLocked && activeCamera === camera) {
-                mouse.x = 0;
-                mouse.y = 0;
+                mouse.x = 0; mouse.y = 0;
             } else {
                 mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
                 mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
@@ -1056,7 +1097,11 @@
                 case 'KeyA': moveL = true; break;
                 case 'KeyS': moveBwd = true; break;
                 case 'KeyD': moveR = true; break;
-                case 'Digit1': if (ENGINE_MODE === 'PLAY' && !isRagdolled) throwBomb(); break;
+                case 'Digit1': if (ENGINE_MODE === 'PLAY' && !isRagdolled) window.equipTool(-1); break;
+                case 'Digit2': if (ENGINE_MODE === 'PLAY' && !isRagdolled) window.equipTool(0); break;
+                case 'Digit3': if (ENGINE_MODE === 'PLAY' && !isRagdolled) window.equipTool(1); break;
+                case 'Digit4': if (ENGINE_MODE === 'PLAY' && !isRagdolled) window.equipTool(2); break;
+                case 'Digit5': if (ENGINE_MODE === 'PLAY' && !isRagdolled) window.equipTool(3); break;
                 case 'KeyX': 
                     if (ENGINE_MODE === 'PLAY' && activeCamera === camera) {
                         if (isInteracting) window.exitInteractMode();
@@ -1072,7 +1117,7 @@
                             isGrappling = true;
                             grappleTarget.copy(hits[0].point);
                             grappleLine.visible = true;
-                            velocity.y = Math.max(velocity.y, 50); // Small hop
+                            velocity.y = Math.max(velocity.y, 50); 
                             playSound('grapple');
                         }
                     }
@@ -1118,13 +1163,13 @@
                     if (activeCamera === camera) { 
                         activeCamera = thirdPersonCamera; 
                         myAvatarMesh.userData.head.visible = true; 
-                        if (isPointerLocked && !isRightMouseDown) unlockPointer(); // Free mouse natively in 3rd person
+                        if (isPointerLocked && !isRightMouseDown) unlockPointer(); 
                         transformControl.camera = activeCamera;
                     } 
                     else { 
                         activeCamera = camera; 
                         myAvatarMesh.userData.head.visible = false; 
-                        if (!isPointerLocked && !isInteracting) lockPointer(); // Lock mouse in 1st person
+                        if (!isPointerLocked && !isInteracting) lockPointer(); 
                         document.getElementById('blocker').classList.add('hidden');
                         transformControl.camera = activeCamera;
                     }
@@ -1132,7 +1177,6 @@
             }
         });
 
-        // Fixed sticky keys by ignoring isTyping() for keyup events
         document.addEventListener('keyup', (e) => {
             switch (e.code) {
                 case 'KeyW': moveFwd = false; break;
@@ -1156,7 +1200,6 @@
             const bomb = new THREE.Mesh(bombGeo, bombMat);
             bomb.position.copy(playerObject.position);
             
-            // Throw from current camera view
             const throwDir = new THREE.Vector3(0, 0, -1);
             throwDir.applyEuler(new THREE.Euler(cameraPitch, cameraYaw, 0, 'YXZ'));
             
@@ -1177,7 +1220,7 @@
 
             for (let i = objects.length - 1; i >= 0; i--) {
                 const obj = objects[i];
-                if (obj === baseplate || obj.userData.type === 'Spawn') continue; 
+                if (obj === baseplate || obj.userData.type === 'Spawn' || obj.userData.type === 'Tool') continue; 
                 const scaleRadiusOffset = Math.max(obj.scale.x, obj.scale.y, obj.scale.z) * 2.5;
                 if (obj.position.distanceTo(pos) < 25 + scaleRadiusOffset) { destroyBlock(obj); }
             }
@@ -1199,9 +1242,11 @@
             isGrappling = false;
             grappleLine.visible = false;
             
+            window.equipTool(-1);
+
             if (activeCamera === camera) {
                 activeCamera = thirdPersonCamera;
-                if (isPointerLocked && !isRightMouseDown) unlockPointer(); // Free mouse since we moved to 3rd person
+                if (isPointerLocked && !isRightMouseDown) unlockPointer(); 
                 transformControl.camera = activeCamera;
             }
             myAvatarMesh.visible = false;
@@ -1268,6 +1313,9 @@
                     }
                 });
 
+                inventory = [];
+                window.equipTool(-1);
+
                 activeCheckpoint = null;
                 respawnPlayer();
 
@@ -1288,10 +1336,14 @@
                         obj.rotation.copy(obj.userData.initialRot);
                         delete obj.userData.runScript; delete obj.userData.initialPos; delete obj.userData.initialRot;
                     }
+                    if (obj.userData.type === 'Tool') {
+                        obj.visible = true;
+                        obj.userData.isPickedUp = false;
+                    }
                 });
 
                 respawnPlayer();
-                window.setEditorTool(EDITOR_TOOL); // Re-attach transform tool if active
+                window.setEditorTool(EDITOR_TOOL); 
             }
         }
 
@@ -1393,7 +1445,7 @@
             const leftVector = rightVector.clone().negate();
 
             const origins = [pos.clone(), pos.clone().add(rightVector), pos.clone().add(leftVector)];
-            const collidables = objects.filter(o => o.userData.type !== 'Spawn' && o.userData.type !== 'Checkpoint');
+            const collidables = objects.filter(o => o.userData.type !== 'Spawn' && o.userData.type !== 'Checkpoint' && o.userData.type !== 'Tool');
             const checkDist = Math.max(1.5, moveDist + 0.5);
 
             for (let origin of origins) {
@@ -1420,7 +1472,7 @@
                 pos.clone().add(new THREE.Vector3(0, 0, -radius))
             ];
             
-            const collidables = objects.filter(o => o.userData.type !== 'Spawn' && o.userData.type !== 'Checkpoint');
+            const collidables = objects.filter(o => o.userData.type !== 'Spawn' && o.userData.type !== 'Checkpoint' && o.userData.type !== 'Tool');
             const checkDist = Math.max(1.2, fallDist + 0.5);
             
             let closestHit = null;
@@ -1483,6 +1535,8 @@
             }
 
             if (isRagdolled) {
+                ragdollTimer -= delta;
+                if (ragdollTimer <= 0) respawnPlayer();
                 ragdollParts.forEach(part => {
                     part.userData.velocity.y -= 200 * delta; part.userData.velocity.x *= 0.95; part.userData.velocity.z *= 0.95;
                     part.position.add(part.userData.velocity.clone().multiplyScalar(delta));
@@ -1504,6 +1558,22 @@
 
             // Sync Player Yaw
             playerObject.rotation.y = cameraYaw;
+
+            // Render Equipped Tool visually
+            if (equippedToolMesh && ENGINE_MODE === 'PLAY') {
+                if (activeCamera === camera) {
+                    const offset = new THREE.Vector3(1.5, -1.5, -3);
+                    offset.applyEuler(new THREE.Euler(cameraPitch, cameraYaw, 0, 'YXZ'));
+                    equippedToolMesh.position.copy(playerObject.position).add(offset);
+                    equippedToolMesh.rotation.set(cameraPitch, cameraYaw, 0, 'YXZ');
+                    equippedToolMesh.position.y += Math.sin(time * 0.01) * 0.1; // Viewmodel bob
+                } else {
+                    const offset = new THREE.Vector3(1.5, -3, 0);
+                    offset.applyEuler(new THREE.Euler(0, cameraYaw, 0, 'YXZ'));
+                    equippedToolMesh.position.copy(playerObject.position).add(offset);
+                    equippedToolMesh.rotation.set(0, cameraYaw, 0, 'YXZ');
+                }
+            }
 
             // FOV Sprinting Effect
             let targetFov = isSprinting ? 95 : 75;
@@ -1552,9 +1622,12 @@
                     
                     ghostBlock.position.copy(pos);
                     ghostBlock.scale.set(currentPlaceScale, currentPlaceScale, currentPlaceScale);
-                    ghostBlock.visible = true;
                     
                     const typeDef = Object.values(BLOCK_TYPES).find(t => t.id === currentType.id);
+                    if (typeDef.isTool) ghostBlock.scale.set(currentPlaceScale * 0.5, currentPlaceScale * 0.5, currentPlaceScale * 0.5);
+
+                    ghostBlock.visible = true;
+                    
                     ghostMesh.geometry = typeDef.shape === 'ramp' ? rampGeo : typeDef.shape === 'cylinder' ? cylinderGeo : typeDef.shape === 'sphere' ? sphereGeo : typeDef.shape === 'cone' ? coneGeo : typeDef.shape === 'torus' ? torusGeo : blockGeo;
                     ghostEdges.geometry = new THREE.EdgesGeometry(ghostMesh.geometry);
                     
@@ -1574,13 +1647,18 @@
                 ghostBlock.visible = false;
             }
 
-            // Movement Reading Logic
-            if (!isRagdolled && !isTransformDragging) { 
-                // Set explicitly to prevent negative/backward logic confusion
-                if (moveFwd) velocity.z -= (isSprinting ? 600.0 : 350.0) * delta;
-                if (moveBwd) velocity.z += (isSprinting ? 600.0 : 350.0) * delta;
-                if (moveL) velocity.x -= (isSprinting ? 600.0 : 350.0) * delta;
-                if (moveR) velocity.x += (isSprinting ? 600.0 : 350.0) * delta;
+            // Allow WASD if game is active
+            const isGameActive = document.getElementById('blocker').classList.contains('hidden') && 
+                                 document.getElementById('script-modal').classList.contains('hidden') && 
+                                 document.getElementById('publish-modal').classList.contains('hidden') &&
+                                 !isTyping();
+
+            if (!isRagdolled && isGameActive && !isTransformDragging) { 
+                direction.z = Number(moveFwd) - Number(moveBwd); 
+                direction.x = Number(moveR) - Number(moveL); 
+                direction.normalize(); 
+            } else { 
+                direction.set(0,0,0); 
             }
 
             // UI Coordinates Update
@@ -1589,52 +1667,16 @@
                 if(cd) cd.innerText = `X:${playerObject.position.x.toFixed(1)} Y:${playerObject.position.y.toFixed(1)} Z:${playerObject.position.z.toFixed(1)}`;
             }
 
-            // X and Z Split Collision Processing
-            const xMovementDist = Math.abs(velocity.x * delta);
-            const zMovementDist = Math.abs(velocity.z * delta);
-
-            if (xMovementDist > 0.001) {
-                if (isNoclip && ENGINE_MODE === 'EDIT') {
-                    playerObject.translateX(velocity.x * delta);
-                } else {
-                    const moveX = new THREE.Vector3(velocity.x * delta, 0, 0);
-                    const dirX = moveX.clone().normalize().applyEuler(new THREE.Euler(0, cameraYaw, 0));
-                    const hitX = getHorizontalCollision(dirX, xMovementDist);
-                    if (hitX) {
-                        if (hitX.userData.onTouch) hitX.userData.onTouch();
-                        velocity.x = 0;
-                    } else {
-                        playerObject.translateX(velocity.x * delta);
-                    }
+            if (ENGINE_MODE === 'EDIT') {
+                velocity.x -= velocity.x * 10.0 * delta; velocity.z -= velocity.z * 10.0 * delta; velocity.y -= velocity.y * 10.0 * delta; 
+                const speed = 400.0;
+                if (!isRagdolled) {
+                    if (moveFwd || moveBwd) velocity.z -= direction.z * speed * delta; if (moveL || moveR) velocity.x -= direction.x * speed * delta;
+                    if (moveUp) velocity.y += speed * delta; if (moveDown) velocity.y -= speed * delta;
                 }
-            }
+                playerObject.translateX(-velocity.x * delta); playerObject.translateZ(velocity.z * delta); playerObject.position.y += (velocity.y * delta);
 
-            if (zMovementDist > 0.001) {
-                if (isNoclip && ENGINE_MODE === 'EDIT') {
-                    playerObject.translateZ(velocity.z * delta);
-                } else {
-                    const moveZ = new THREE.Vector3(0, 0, velocity.z * delta);
-                    const dirZ = moveZ.clone().normalize().applyEuler(new THREE.Euler(0, cameraYaw, 0));
-                    const hitZ = getHorizontalCollision(dirZ, zMovementDist);
-                    if (hitZ) {
-                        if (hitZ.userData.onTouch) hitZ.userData.onTouch();
-                        if (hitZ.userData.type === 'Conveyor') {
-                            const pushDir = new THREE.Vector3(0, 0, -1).applyEuler(hitZ.rotation).normalize();
-                            playerObject.position.add(pushDir.multiplyScalar(60 * delta));
-                        }
-                        velocity.z = 0;
-                    } else {
-                        playerObject.translateZ(velocity.z * delta);
-                    }
-                }
-            }
-            
-            // Friction
-            velocity.x -= velocity.x * 10.0 * delta; 
-            velocity.z -= velocity.z * 10.0 * delta; 
-
-            // Vertical Processing
-            if (ENGINE_MODE === 'PLAY' || !isNoclip) {
+            } else if (ENGINE_MODE === 'PLAY') {
                 
                 // Grapple Hook Physics
                 if (isGrappling) {
@@ -1654,13 +1696,20 @@
                     ragdollTimer -= delta;
                     if (ragdollTimer <= 0) respawnPlayer();
                 } else {
+                    velocity.x -= velocity.x * (isGrappling ? 1.0 : 10.0) * delta; 
+                    velocity.z -= velocity.z * (isGrappling ? 1.0 : 10.0) * delta; 
                     velocity.y -= 400.0 * delta; 
                     
-                    const fallDist = velocity.y < 0 ? Math.abs(velocity.y * delta) : 0;
-                    const groundHit = checkGroundCollision(fallDist);
+                    const speed = isSprinting ? 500.0 : 300.0;
+                    if (moveFwd || moveBwd) velocity.z -= direction.z * speed * delta; if (moveL || moveR) velocity.x -= direction.x * speed * delta; 
 
-                    if (groundHit && velocity.y <= 0) {
-                        const hitBlock = groundHit.object;
+                    const playerPos = playerObject.position;
+                    playerRaycaster.ray.origin.copy(playerPos); playerRaycaster.ray.origin.y -= 8.0; 
+                    const collidables = objects.filter(o => o.userData.type !== 'Spawn' && o.userData.type !== 'Checkpoint' && o.userData.type !== 'Tool');
+                    const intersections = playerRaycaster.intersectObjects(collidables, false);
+                    
+                    if (intersections.length > 0 && intersections[0].distance < 1.2 && velocity.y <= 0) {
+                        const hitBlock = intersections[0].object;
                         
                         // Fall Damage
                         if (velocity.y < -300 && !isGrappling) {
@@ -1678,44 +1727,47 @@
                         } else if (blockType === 'Bouncer') {
                             velocity.y = 400; canJump = false; isGrappling = false; grappleLine.visible = false;
                             playSound('jump');
-                        } else if (blockType === 'Checkpoint') {
-                            const newSpawn = hitBlock.position.clone(); newSpawn.y += 9;
+                        } else {
+                            velocity.y = Math.max(0, velocity.y); canJump = true;
+                            playerPos.y = intersections[0].point.y + 9;
+                        }
+                    }
+                    
+                    // Checkpoint touch logic (soft trigger)
+                    const cps = objects.filter(o => o.userData.type === 'Checkpoint');
+                    cps.forEach(cp => {
+                        if (cp.position.distanceTo(playerPos) < 15) {
+                            const newSpawn = cp.position.clone(); newSpawn.y += 9;
                             if (!activeCheckpoint || activeCheckpoint.distanceTo(newSpawn) > 1) {
                                 activeCheckpoint = newSpawn;
                                 showNotification("Checkpoint Saved!");
                                 playSound('place');
                             }
-                            velocity.y = Math.max(0, velocity.y); canJump = true; 
-                            playerObject.position.y = groundHit.point.y + 9;
-                        } else {
-                            velocity.y = Math.max(0, velocity.y); canJump = true;
-                            playerObject.position.y = groundHit.point.y + 9;
                         }
-                    } else if (velocity.y > 0) {
-                        // Ceiling check
-                        playerRaycaster.set(playerObject.position, new THREE.Vector3(0, 1, 0));
-                        const collidables = objects.filter(o => o.userData.type !== 'Spawn' && o.userData.type !== 'Checkpoint');
-                        const ceilHits = playerRaycaster.intersectObjects(collidables, false);
-                        if (ceilHits.length > 0 && ceilHits[0].distance < (velocity.y * delta + 1.0)) {
-                            velocity.y = 0; // bonk
-                        } else {
-                            playerObject.position.y += velocity.y * delta;
+                    });
+
+                    const moveVec = new THREE.Vector3(-velocity.x * delta, 0, velocity.z * delta);
+                    if (moveVec.length() > 0.01) {
+                        const worldDir = moveVec.clone().normalize().applyEuler(new THREE.Euler(0, cameraYaw, 0));
+                        const hitObj = getHorizontalCollision(worldDir, moveVec.length());
+                        if(hitObj) { 
+                            if (hitObj.userData.onTouch) hitObj.userData.onTouch();
+                            
+                            // Conveyor Physics
+                            if (hitObj.userData.type === 'Conveyor') {
+                                const pushDir = new THREE.Vector3(0, 0, -1).applyEuler(hitObj.rotation).normalize();
+                                playerObject.position.add(pushDir.multiplyScalar(60 * delta));
+                            } else {
+                                velocity.x = 0; velocity.z = 0; 
+                            }
                         }
-                    } else {
-                        playerObject.position.y += velocity.y * delta;
                     }
+                    playerObject.translateX(-velocity.x * delta); playerObject.translateZ(velocity.z * delta); playerObject.position.y += (velocity.y * delta);
+                    if (playerObject.position.y < -50) respawnPlayer();
                 }
                 
                 objects.forEach(obj => { if (obj.userData.runScript) { try { obj.userData.runScript(obj, playerObject, time, delta, gameAPI); } catch (e) {} } });
-            } else {
-                // Flying in edit mode (Noclip)
-                if (moveUp) velocity.y += 400.0 * delta; 
-                if (moveDown) velocity.y -= 400.0 * delta;
-                velocity.y -= velocity.y * 10.0 * delta;
-                playerObject.position.y += (velocity.y * delta);
             }
-
-            if (playerObject.position.y < -50) respawnPlayer();
 
             prevTime = time;
             renderer.render(scene, activeCamera);
