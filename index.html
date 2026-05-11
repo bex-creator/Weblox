@@ -1,0 +1,1737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weblox Studio</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.128.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+        body { margin: 0; overflow: hidden; background-color: #1e1e1e; font-family: 'Inter', sans-serif; user-select: none; color: #ededed; }
+        
+        #css-container, #canvas-container { position: absolute; top: 0; left: 0; width: 100vw; height: 100vh; pointer-events: none; }
+        #css-container { z-index: 1; pointer-events: auto; } /* Allow CSS events for TransformControls */
+        #canvas-container { z-index: 2; pointer-events: none; }
+        
+        /* Studio UI Layer */
+        #ui-layer {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none; z-index: 100;
+            display: flex; flex-direction: column; justify-content: space-between;
+        }
+
+        /* Top Menu Bar */
+        #topbar {
+            background: #252526; border-bottom: 1px solid #333;
+            padding: 8px 16px; display: flex; justify-content: space-between; align-items: center;
+            pointer-events: auto; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        
+        .menu-btn {
+            background: transparent; color: #ccc; border: 1px solid transparent;
+            padding: 6px 12px; border-radius: 4px; cursor: pointer; font-size: 13px; font-weight: 600;
+            transition: all 0.1s; display: flex; align-items: center; gap: 6px;
+        }
+        .menu-btn:hover { background: #333; color: white; }
+        .menu-btn.primary { background: #0e639c; color: white; border-color: #1177bb; }
+        .menu-btn.primary:hover { background: #1177bb; }
+        
+        .play-btn { background: #2ea043; color: white; }
+        .play-btn:hover { background: #3fb950; }
+        .stop-btn { background: #da3633; color: white; display: none; }
+        .stop-btn:hover { background: #f85149; }
+
+        /* Bottom Toolbar */
+        #bottom-toolbar {
+            background: #252526; border-top: 1px solid #333; padding: 12px 20px;
+            pointer-events: auto; display: flex; flex-direction: column; align-items: center; gap: 12px;
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.5);
+        }
+        
+        .tool-row { display: flex; gap: 8px; flex-wrap: wrap; justify-content: center; align-items: center; }
+        
+        .type-slot {
+            padding: 6px 12px; border: 1px solid #3e3e42; border-radius: 4px; cursor: pointer;
+            color: #ccc; font-size: 13px; font-weight: 600; background: #2d2d30; transition: 0.1s;
+        }
+        .type-slot:hover { background: #3e3e42; color: white; }
+        .type-slot.selected { border-color: #0e639c; background: #094771; color: white; }
+
+        .color-slot {
+            width: 24px; height: 24px; border: 2px solid #333; border-radius: 4px; cursor: pointer;
+            transition: transform 0.1s; box-shadow: inset 0 0 4px rgba(0,0,0,0.3);
+        }
+        .color-slot.selected { border-color: white; transform: scale(1.15); box-shadow: 0 0 8px rgba(255,255,255,0.4); }
+
+        /* Overlays */
+        #blocker {
+            position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center;
+            pointer-events: auto; z-index: 50; backdrop-filter: blur(4px);
+        }
+
+        #notification {
+            position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px);
+            background: #0e639c; color: white; padding: 10px 20px; border-radius: 6px;
+            font-size: 14px; font-weight: 600; opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;
+            z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        }
+        #notification.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+        .hidden { display: none !important; }
+        textarea { tab-size: 4; }
+
+        /* Crosshair */
+        #crosshair {
+            position: absolute; top: 50%; left: 50%; width: 24px; height: 24px;
+            transform: translate(-50%, -50%); pointer-events: none; opacity: 0.8; mix-blend-mode: difference;
+        }
+        #crosshair::before, #crosshair::after { content: ''; position: absolute; background: white; border-radius: 2px; }
+        #crosshair::before { top: 11px; left: 0; width: 24px; height: 2px; }
+        #crosshair::after { top: 0; left: 11px; width: 2px; height: 24px; }
+    </style>
+</head>
+<body>
+
+    <!-- WebGL & CSS3D Containers -->
+    <div id="css-container"></div>
+    <div id="canvas-container"></div>
+
+    <!-- UI Layer -->
+    <div id="ui-layer">
+        
+        <!-- Top Menu Bar -->
+        <div id="topbar">
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-black text-lg mr-2 shadow-inner">W</div>
+                <div class="text-sm font-bold text-gray-200 tracking-wide mr-6">WEBLOX STUDIO</div>
+                
+                <div class="h-5 w-px bg-gray-600 mx-2"></div>
+                
+                <button class="menu-btn" onclick="window.clearLevel()">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg>
+                    Clear
+                </button>
+                <button class="menu-btn" onclick="window.loadLevel()">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/></svg>
+                    Load Local
+                </button>
+                <button class="menu-btn" onclick="window.saveLevel()">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg>
+                    Save Local
+                </button>
+                <div class="h-5 w-px bg-gray-600 mx-2 hidden md:block"></div>
+                <div id="coords-display" class="text-[11px] text-gray-400 font-mono tracking-widest hidden md:block w-36 text-center bg-[#1e1e1e] p-1.5 rounded border border-[#333]">X: 0.0 Y: 0.0 Z: 0.0</div>
+                <button id="btn-env" class="menu-btn" onclick="window.cycleEnvironment()">🌞 Day</button>
+            </div>
+            
+            <div class="flex items-center gap-3">
+                <span id="mode-indicator" class="text-xs bg-blue-900/50 border border-blue-700 text-blue-300 px-3 py-1 rounded font-bold mr-4">EDIT MODE</span>
+                
+                <button id="btn-play" class="menu-btn play-btn" onclick="window.toggleEngineMode()">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> PLAYTEST
+                </button>
+                <button id="btn-stop" class="menu-btn stop-btn" onclick="window.toggleEngineMode()">
+                    <svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg> STOP
+                </button>
+                
+                <div class="h-5 w-px bg-gray-600 mx-2"></div>
+                
+                <button class="menu-btn primary" onclick="window.showPublishModal()">
+                    <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+                    Publish to Weblox
+                </button>
+            </div>
+        </div>
+
+        <!-- Play Mode HUD -->
+        <div id="play-hud" class="absolute bottom-10 left-1/2 transform -translate-x-1/2 flex-col items-center gap-4 hidden z-[100] pointer-events-none">
+            <div class="w-64 h-4 bg-black/80 rounded-full overflow-hidden border border-white/20 mb-2 shadow-lg">
+                <div id="health-fill" class="h-full bg-green-500 w-full transition-all duration-200"></div>
+            </div>
+            <div class="flex gap-3 bg-black/60 p-2.5 rounded-2xl backdrop-blur-md border border-white/10 shadow-xl">
+                <div class="w-14 h-14 bg-white/20 rounded-xl flex flex-col items-center justify-center border-2 border-white/50 text-white font-bold"><span class="text-2xl mb-0.5">💣</span><span class="text-[10px] bg-black/50 px-2 rounded-full">1</span></div>
+                <div class="w-14 h-14 bg-white/20 rounded-xl flex flex-col items-center justify-center border-2 border-white/50 text-white font-bold"><span class="text-2xl mb-0.5">🪝</span><span class="text-[10px] bg-black/50 px-2 rounded-full">E</span></div>
+            </div>
+        </div>
+
+        <!-- TV Interact Banner -->
+        <div id="interact-banner" class="hidden absolute top-16 left-1/2 transform -translate-x-1/2 bg-blue-600 text-white px-8 py-3 rounded-full font-bold shadow-2xl border border-blue-400 cursor-pointer hover:bg-blue-500 pointer-events-auto transition-transform hover:scale-105 flex items-center gap-3 backdrop-blur-md" onclick="window.exitInteractMode()">
+            <span class="text-xl">🖱️</span> INTERACT MODE ACTIVE - Click to Return (or press X)
+        </div>
+
+        <div id="crosshair"></div>
+        <div id="notification">Notification</div>
+
+        <!-- Bottom Toolbar (Editor Tools) -->
+        <div id="editor-tools">
+            <div id="bottom-toolbar">
+                <div class="flex gap-8 items-center w-full justify-center">
+                    
+                    <!-- Tool Mode -->
+                    <div class="flex flex-col gap-1 items-center">
+                        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Active Tool</span>
+                        <div class="flex bg-[#1e1e1e] p-1 rounded border border-[#333]">
+                            <div id="tool-build" class="type-slot selected !border-none !m-0" onclick="window.setEditorTool('BUILD')">🔨 Build</div>
+                            <div id="tool-move" class="type-slot !border-none !m-0" onclick="window.setEditorTool('MOVE')">↔️ Move</div>
+                            <div id="tool-scale" class="type-slot !border-none !m-0" onclick="window.setEditorTool('SCALE')">📏 Resize</div>
+                            <div id="tool-paint" class="type-slot !border-none !m-0" onclick="window.setEditorTool('PAINT')">🎨 Paint</div>
+                            <div id="tool-clone" class="type-slot !border-none !m-0" onclick="window.setEditorTool('CLONE')">🖇️ Clone</div>
+                            <div id="tool-script" class="type-slot !border-none !m-0" onclick="window.setEditorTool('SCRIPT')">📜 Script</div>
+                        </div>
+                    </div>
+
+                    <div class="h-8 w-px bg-[#333]"></div>
+
+                    <!-- Shapes -->
+                    <div class="flex flex-col gap-1 items-center">
+                        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Parts & Logic</span>
+                        <div class="tool-row" id="type-bar">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                    <div class="h-8 w-px bg-[#333]"></div>
+
+                    <!-- Colors -->
+                    <div class="flex flex-col gap-1 items-center">
+                        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Material Color</span>
+                        <div class="tool-row" id="color-bar">
+                            <!-- Populated via JS -->
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pause / Start Overlay -->
+    <div id="blocker">
+        <div class="bg-[#1e1e1e] p-8 rounded-xl border border-[#333] shadow-2xl text-center w-[450px]">
+            <h1 class="text-2xl font-black mb-2 text-white">Weblox Studio</h1>
+            <p class="text-sm text-gray-400 mb-6">Click anywhere to enter the viewport.</p>
+            
+            <div class="bg-[#252526] p-5 rounded-lg text-sm text-left grid grid-cols-2 gap-y-3 border border-[#333] text-gray-300">
+                <div class="col-span-2 text-center text-gray-400 font-bold border-b border-[#333] pb-2 mb-1 text-xs uppercase tracking-widest">Camera & Interaction</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">W A S D</b> Move</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">Space/Shift</b> Fly Up/Down</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">Hold RMB</b> Orbit (3rd Person)</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">L-Click</b> Use Tool / Interact</div>
+                
+                <div class="col-span-2 text-center text-gray-400 font-bold border-b border-[#333] pb-2 mb-1 mt-2 text-xs uppercase tracking-widest">Advanced Tools</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">R</b> Rotate Block</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">+ / -</b> Scale Block</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">C</b> Noclip (Edit)</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">F</b> Flashlight</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">V</b> Toggle 1st/3rd Person</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">X</b> Interact Mode (1st Person)</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="hidden flex-col items-center justify-center absolute inset-0 bg-black/90 z-[400] text-white pointer-events-auto backdrop-blur-xl">
+        <div class="bg-[#1e1e1e] p-8 rounded-xl border border-[#333] w-[400px] shadow-2xl">
+            <h2 class="text-2xl font-black text-white mb-2 flex items-center gap-2">Welcome to Weblox</h2>
+            <p class="text-sm text-gray-400 mb-6">Sign in or create an account to save and publish your worlds to the cloud.</p>
+            
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 block">Email</label>
+            <input type="email" id="auth-email" placeholder="you@email.com" class="w-full bg-[#252526] border border-[#333] rounded p-3 mb-4 text-white focus:outline-none focus:border-blue-500 transition-colors" autocomplete="off">
+            
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 block">Password</label>
+            <input type="password" id="auth-password" placeholder="••••••••" class="w-full bg-[#252526] border border-[#333] rounded p-3 mb-8 text-white focus:outline-none focus:border-blue-500 transition-colors" autocomplete="off">
+            
+            <div class="flex flex-col gap-3">
+                <button class="bg-[#0e639c] hover:bg-[#1177bb] w-full py-3 rounded font-bold text-sm transition-colors shadow-lg" onclick="window.loginAccount()">Sign In</button>
+                <button class="bg-[#333] hover:bg-[#444] w-full py-3 rounded font-bold text-sm transition-colors" onclick="window.registerAccount()">Create Account</button>
+                <div class="my-3 border-t border-[#333]"></div>
+                <button class="text-gray-400 hover:text-white font-semibold text-sm transition-colors" onclick="window.loginGuest()">Continue as Guest</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publish Modal -->
+    <div id="publish-modal" class="hidden flex-col items-center justify-center absolute inset-0 bg-black/80 z-[300] text-white pointer-events-auto backdrop-blur-sm">
+        <div class="bg-[#1e1e1e] p-8 rounded-xl border border-[#333] w-[400px] shadow-2xl">
+            <h2 class="text-xl font-black text-white mb-2 flex items-center gap-2"><svg class="w-6 h-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg> Publish Experience</h2>
+            <p class="text-sm text-gray-400 mb-6">Upload your world to the Weblox Cloud. It will instantly appear on the Player Client for others to join!</p>
+            
+            <label class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1 block">Experience Name</label>
+            <input type="text" id="publish-name" placeholder="e.g., Epic Obby v1" class="w-full bg-[#252526] border border-[#333] rounded p-3 mb-8 text-white focus:outline-none focus:border-blue-500 transition-colors" autocomplete="off" maxlength="30">
+            
+            <div class="flex justify-end gap-3">
+                <button class="bg-[#333] hover:bg-[#444] px-5 py-2.5 rounded font-bold text-sm transition-colors" onclick="window.closePublishModal()">Cancel</button>
+                <button class="bg-[#0e639c] hover:bg-[#1177bb] px-6 py-2.5 rounded font-bold text-sm transition-colors shadow-lg" onclick="window.submitPublish()">Publish to Cloud</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script / HTML Editor Modal -->
+    <div id="script-modal" class="hidden flex-col items-center justify-center absolute inset-0 bg-black/80 z-[300] text-white pointer-events-auto backdrop-blur-sm">
+        <div class="bg-[#1e1e1e] rounded-xl border border-[#333] w-[800px] shadow-2xl flex flex-col overflow-hidden">
+            <div class="bg-[#252526] border-b border-[#333] p-4 flex justify-between items-center">
+                <div>
+                    <h2 id="script-modal-title" class="text-lg font-black text-white flex items-center gap-2">📜 Block Script Editor</h2>
+                    <p id="script-modal-desc" class="text-xs text-gray-400 mt-1 font-medium">Write JavaScript to run during Play Mode. Variables: <code>block</code>, <code>player</code>, <code>game</code>, <code>time</code>, <code>delta</code>.</p>
+                </div>
+                <button class="text-gray-400 hover:text-white" onclick="window.closeScriptModal()"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
+            </div>
+            
+            <div class="p-4 bg-[#1e1e1e]">
+                <textarea id="block-script-input" class="w-full h-[400px] bg-[#1e1e1e] border border-[#333] rounded p-4 text-[#d4d4d4] font-mono text-sm focus:outline-none focus:border-[#0e639c] transition-colors leading-relaxed" spellcheck="false"></textarea>
+            </div>
+            
+            <div class="bg-[#252526] border-t border-[#333] p-4 flex justify-end gap-3">
+                <button class="bg-[#333] hover:bg-[#444] px-6 py-2 rounded font-bold text-sm transition-colors" onclick="window.closeScriptModal()">Cancel</button>
+                <button class="bg-[#0e639c] hover:bg-[#1177bb] px-8 py-2 rounded font-bold text-sm transition-colors shadow-lg" onclick="window.saveScript()">Apply Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ES Module Imports for Studio Engine -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { PointerLockControls } from 'three/addons/controls/PointerLockControls.js';
+        import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+        import { TransformControls } from 'three/addons/controls/TransformControls.js';
+        
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        let db, auth, currentUser = null;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-weblox-id';
+        const DEFAULT_TV_HTML = "<style>body{margin:0;display:flex;flex-direction:column;justify-content:center;align-items:center;height:100vh;background:#111;color:#4fc3f7;font-family:sans-serif;}</style><div><h1 style='text-align:center; font-size:50px;'>HTML TV</h1><p style='text-align:center; color:#ccc; font-size:24px; margin-bottom: 20px;'>You can naturally click and type here since mouse is free in 3rd person!</p><input type='text' style='padding:15px; font-size:24px; width:80%; border-radius:8px; border:2px solid #4fc3f7; background:#222; color:#fff;' placeholder='Type something...' /></div>";
+
+        // Physics & Explosions state
+        let isRagdolled = false;
+        let ragdollTimer = 0;
+        let ragdollParts = [];
+        const activeBombs = [];
+        const explosions = [];
+
+        let myAvatarColors = JSON.parse(localStorage.getItem('weblox_avatar')) || { head: 0xf1c27d, torso: 0x1976D2, arms: 0xf1c27d, legs: 0x388E3C };
+
+        try {
+            const firebaseConfig = {
+                apiKey: "AIzaSyCN9lkBMMTaEk8FR4TKgBqcvDkVFtnDUrk",
+                authDomain: "weblox-1f8b0.firebaseapp.com",
+                projectId: "weblox-1f8b0",
+                storageBucket: "weblox-1f8b0.firebasestorage.app",
+                messagingSenderId: "765567900101",
+                appId: "1:765567900101:web:fa03494970c3019f1e93ac",
+                measurementId: "G-D7E2MT985J"
+            };
+            const app = initializeApp(firebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+
+            const initAuth = async () => {
+                try {
+                    if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                        await signInWithCustomToken(auth, __initial_auth_token);
+                    }
+                } catch(e) { 
+                    console.error("Auth error, falling back to anonymous", e); 
+                    await signInAnonymously(auth);
+                }
+            };
+            initAuth();
+            
+            let authInitialized = false;
+            onAuthStateChanged(auth, (user) => { 
+                currentUser = user; 
+                if (!authInitialized) {
+                    authInitialized = true;
+                    // If no session exists, prompt them to log in or pick guest
+                    if (!user && !(typeof __initial_auth_token !== 'undefined' && __initial_auth_token)) {
+                        window.showAuthModal();
+                    }
+                }
+            });
+        } catch(e) { console.error("Firebase init failed:", e); }
+
+        // --- AUTH FUNCTIONS ---
+        window.showAuthModal = () => { document.getElementById('auth-modal').classList.replace('hidden', 'flex'); unlockPointer(); };
+        window.closeAuthModal = () => document.getElementById('auth-modal').classList.replace('flex', 'hidden');
+        
+        window.registerAccount = async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const pass = document.getElementById('auth-password').value;
+            if(!email || !pass) return showNotification("Please enter email and password");
+            try {
+                await createUserWithEmailAndPassword(auth, email, pass);
+                window.closeAuthModal();
+                showNotification("Account created successfully!");
+            } catch(e) { showNotification(e.message); }
+        };
+
+        window.loginAccount = async () => {
+            const email = document.getElementById('auth-email').value.trim();
+            const pass = document.getElementById('auth-password').value;
+            if(!email || !pass) return showNotification("Please enter email and password");
+            try {
+                await signInWithEmailAndPassword(auth, email, pass);
+                window.closeAuthModal();
+                showNotification("Signed in successfully!");
+            } catch(e) { showNotification(e.message); }
+        };
+
+        window.loginGuest = async () => {
+            try {
+                await signInAnonymously(auth);
+                window.closeAuthModal();
+                showNotification("Playing as Guest");
+            } catch(e) { showNotification(e.message); }
+        };
+
+        // --- AUDIO ENGINE ---
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSound(type) {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            
+            const now = audioCtx.currentTime;
+            if (type === 'jump') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'boom') {
+                osc.type = 'square';
+                osc.frequency.setValueAtTime(100, now);
+                osc.frequency.exponentialRampToValueAtTime(20, now + 0.5);
+                gain.gain.setValueAtTime(0.4, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now); osc.stop(now + 0.5);
+            } else if (type === 'hurt') {
+                osc.type = 'sawtooth';
+                osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(50, now + 0.2);
+                gain.gain.setValueAtTime(0.3, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'grapple') {
+                osc.type = 'triangle';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(1200, now + 0.1);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'place') {
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(400, now + 0.05);
+                gain.gain.setValueAtTime(0.1, now);
+                gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now); osc.stop(now + 0.05);
+            }
+        }
+
+        // --- ENGINE CONSTANTS & STATE ---
+        const UNIT_SIZE = 5;
+        let ENGINE_MODE = 'EDIT'; 
+        let EDITOR_TOOL = 'BUILD'; 
+        let objects = []; 
+        let spawnPoints = [];
+        let currentPlaceRotation = 0;
+        let currentPlaceScale = 1;
+        let isNoclip = true;
+
+        // Engine Object Types
+        const BLOCK_TYPES = {
+            NORMAL: { id: 'Normal', name: 'Part', colorOverride: null, shape: 'box' },
+            GLASS: { id: 'Glass', name: 'Glass', colorOverride: null, shape: 'box', matParams: { transparent: true, opacity: 0.4 } },
+            NEON: { id: 'Neon', name: 'Neon', colorOverride: null, shape: 'box', isNeon: true },
+            LAMP: { id: 'Lamp', name: 'Lamp', colorOverride: null, shape: 'box', isLamp: true },
+            RAMP: { id: 'Ramp', name: 'Wedge', colorOverride: null, shape: 'ramp' },
+            CYLINDER: { id: 'Cylinder', name: 'Cylinder', colorOverride: null, shape: 'cylinder' },
+            SPHERE: { id: 'Sphere', name: 'Sphere', colorOverride: null, shape: 'sphere' },
+            CONE: { id: 'Cone', name: 'Spike', colorOverride: null, shape: 'cone' },
+            TORUS: { id: 'Torus', name: 'Ring', colorOverride: null, shape: 'torus' },
+            CONVEYOR: { id: 'Conveyor', name: 'Conveyor', colorOverride: 0x444444, shape: 'box' },
+            CHECKPOINT: { id: 'Checkpoint', name: 'Checkpoint', colorOverride: 0x00FF00, shape: 'box', isNeon: true },
+            LAVA: { id: 'Lava', name: 'Kill Brick', colorOverride: 0xFF2200, shape: 'box' },
+            BOUNCER: { id: 'Bouncer', name: 'Bouncer', colorOverride: 0x00AAFF, shape: 'box' },
+            SPAWN: { id: 'Spawn', name: 'Spawn', colorOverride: 0xFFFF00, shape: 'box' },
+            TV: { id: 'TV', name: 'HTML TV', colorOverride: 0x222222, shape: 'box' }
+        };
+
+        const PALETTE = [
+            0xDE3131, 0x1976D2, 0x388E3C, 0xFBC02D, 
+            0x8E24AA, 0xF57C00, 0xFFFFFF, 0x888888, 0x222222, 0x8B4513, 0xFF69B4, 0x4fc3f7
+        ];
+
+        let currentType = BLOCK_TYPES.NORMAL;
+        let currentColorHex = PALETTE[6];
+
+        window.setEditorTool = (tool) => {
+            EDITOR_TOOL = tool;
+            ['build', 'move', 'scale', 'paint', 'clone', 'script'].forEach(t => {
+                const el = document.getElementById('tool-' + t);
+                if (el) {
+                    if (tool === t.toUpperCase()) el.classList.add('selected', '!bg-[#094771]');
+                    else el.classList.remove('selected', '!bg-[#094771]');
+                }
+            });
+
+            if (transformControl) {
+                if (tool === 'SCALE') transformControl.setMode('scale');
+                else if (tool === 'MOVE') transformControl.setMode('translate');
+                else transformControl.detach();
+            }
+        };
+
+        // --- UI INITIALIZATION ---
+        function initUI() {
+            const typeBar = document.getElementById('type-bar');
+            typeBar.innerHTML = '';
+            Object.values(BLOCK_TYPES).forEach(type => {
+                const btn = document.createElement('div');
+                btn.className = `type-slot ${type.id === currentType.id ? 'selected !bg-[#094771]' : ''}`;
+                btn.innerText = type.name;
+                btn.onclick = () => {
+                    currentType = type;
+                    document.querySelectorAll('.type-slot').forEach(el => el.classList.remove('selected', '!bg-[#094771]'));
+                    btn.classList.add('selected', '!bg-[#094771]');
+                };
+                typeBar.appendChild(btn);
+            });
+
+            const colorBar = document.getElementById('color-bar');
+            colorBar.innerHTML = '';
+            PALETTE.forEach(hex => {
+                const btn = document.createElement('div');
+                btn.className = `color-slot ${hex === currentColorHex ? 'selected' : ''}`;
+                btn.style.backgroundColor = '#' + hex.toString(16).padStart(6, '0');
+                btn.onclick = () => {
+                    currentColorHex = hex;
+                    document.querySelectorAll('.color-slot').forEach(el => el.classList.remove('selected'));
+                    btn.classList.add('selected');
+                };
+                colorBar.appendChild(btn);
+            });
+        }
+        initUI();
+
+        window.showNotification = function(msg) {
+            const notif = document.getElementById('notification');
+            notif.innerText = msg;
+            notif.classList.add('show');
+            setTimeout(() => notif.classList.remove('show'), 3000);
+        }
+
+        // --- POINTER LOCK AND INPUT LOGIC ---
+        let isPointerLocked = false;
+        let isInteracting = false;
+        let isTransformDragging = false;
+        
+        function lockPointer() {
+            if (!isPointerLocked) document.body.requestPointerLock();
+        }
+        function unlockPointer() {
+            if (isPointerLocked) document.exitPointerLock();
+        }
+
+        document.addEventListener('pointerlockchange', () => {
+            isPointerLocked = (document.pointerLockElement === document.body);
+            
+            if (!isPointerLocked) {
+                // If we exit pointer lock, stop moving
+                moveFwd = false; moveBwd = false; moveL = false; moveR = false;
+                
+                // Show pause menu if we unlocked from 1st person and didn't open a tool/modal
+                if (activeCamera === camera && !isInteracting && !isTransformDragging &&
+                    document.getElementById('script-modal').classList.contains('hidden') && 
+                    document.getElementById('publish-modal').classList.contains('hidden') &&
+                    document.getElementById('auth-modal').classList.contains('hidden')) {
+                    document.getElementById('blocker').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('blocker').classList.add('hidden');
+            }
+        });
+
+        // Click to resume
+        document.getElementById('blocker').addEventListener('click', () => {
+            if (activeCamera === camera) {
+                lockPointer(); // Lock back in 1st person
+            } else {
+                document.getElementById('blocker').classList.add('hidden'); // Just hide menu in 3rd person
+            }
+        });
+
+        window.enterInteractMode = function() {
+            isInteracting = true;
+            unlockPointer();
+            document.getElementById('interact-banner').classList.remove('hidden');
+        };
+        window.exitInteractMode = function() {
+            isInteracting = false;
+            document.getElementById('interact-banner').classList.add('hidden');
+            if (activeCamera === camera) lockPointer();
+        };
+
+        // --- THREE.JS SETUP & GEOMETRIES ---
+        const scene = new THREE.Scene();
+        
+        const cssRenderer = new CSS3DRenderer();
+        cssRenderer.setSize(window.innerWidth, window.innerHeight);
+        document.getElementById('css-container').appendChild(cssRenderer.domElement);
+        const cssScene = new THREE.Scene();
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setClearColor(0x000000, 0); 
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.shadowMap.enabled = true;
+        document.getElementById('canvas-container').appendChild(renderer.domElement);
+
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        const thirdPersonCamera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        let activeCamera = camera;
+
+        // Transform Controls
+        const transformControl = new TransformControls(activeCamera, cssRenderer.domElement);
+        transformControl.addEventListener('dragging-changed', function (event) {
+            isTransformDragging = event.value;
+        });
+        scene.add(transformControl);
+        
+        // --- CUSTOM FREE/ORBIT CONTROLS ---
+        const playerObject = new THREE.Group();
+        playerObject.position.set(0, 9, 0);
+        scene.add(playerObject);
+
+        // Flashlight Hookup
+        const flashlight = new THREE.SpotLight(0xffffff, 0, 150, Math.PI/5, 0.5, 1);
+        flashlight.position.set(0, 0, 0);
+        flashlight.target.position.set(0, 0, -1);
+        playerObject.add(flashlight);
+        playerObject.add(flashlight.target);
+        let isFlashlightOn = false;
+
+        let cameraYaw = 0;
+        let cameraPitch = 0;
+        let isRightMouseDown = false;
+        let mouseMovedDuringRightClick = false;
+
+        scene.add(new THREE.AmbientLight(0x606060));
+        const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        dirLight.position.set(100, 200, 50);
+        dirLight.castShadow = true;
+        dirLight.shadow.camera.left = -200; dirLight.shadow.camera.right = 200;
+        dirLight.shadow.camera.top = 200; dirLight.shadow.camera.bottom = -200;
+        scene.add(dirLight);
+
+        // Environment Cycle
+        const ENVIRONMENTS = [
+            { name: '🌞 Day', sky: 0x87CEEB, fog: 0x87CEEB, light: 0.8 },
+            { name: '🌅 Sunset', sky: 0xff7e67, fog: 0xff7e67, light: 0.5 },
+            { name: '🌙 Night', sky: 0x050510, fog: 0x050510, light: 0.1 },
+            { name: '🌌 Space', sky: 0x000000, fog: 0x000000, light: 0.3 }
+        ];
+        let currentEnvIdx = 0;
+
+        const skyGeo = new THREE.BoxGeometry(900, 900, 900);
+        const skyMat = new THREE.MeshBasicMaterial({ color: ENVIRONMENTS[0].sky, side: THREE.BackSide, fog: false });
+        const skyBox = new THREE.Mesh(skyGeo, skyMat);
+        scene.add(skyBox);
+        scene.fog = new THREE.FogExp2(ENVIRONMENTS[0].fog, 0.002);
+
+        window.cycleEnvironment = function() {
+            currentEnvIdx = (currentEnvIdx + 1) % ENVIRONMENTS.length;
+            const env = ENVIRONMENTS[currentEnvIdx];
+            skyBox.material.color.setHex(env.sky);
+            scene.fog.color.setHex(env.fog);
+            dirLight.intensity = env.light;
+            document.getElementById('btn-env').innerText = env.name;
+        };
+
+        let baseplate;
+        function createBaseplate() {
+            const geo = new THREE.PlaneGeometry(1000, 1000);
+            geo.rotateX(-Math.PI / 2);
+            const mat = new THREE.MeshLambertMaterial({ color: 0x4CAF50 });
+            baseplate = new THREE.Mesh(geo, mat);
+            baseplate.receiveShadow = true;
+            scene.add(baseplate);
+            objects.push(baseplate);
+
+            const gridHelper = new THREE.GridHelper(1000, 200, 0x000000, 0x000000);
+            gridHelper.material.opacity = 0.15;
+            gridHelper.material.transparent = true;
+            scene.add(gridHelper);
+        }
+        createBaseplate();
+
+        // Standard Geometries
+        const blockGeo = new THREE.BoxGeometry(UNIT_SIZE, UNIT_SIZE, UNIT_SIZE);
+        const cylinderGeo = new THREE.CylinderGeometry(UNIT_SIZE/2, UNIT_SIZE/2, UNIT_SIZE, 16);
+        const sphereGeo = new THREE.SphereGeometry(UNIT_SIZE/2, 16, 16);
+        const coneGeo = new THREE.ConeGeometry(UNIT_SIZE/2, UNIT_SIZE, 16);
+        const torusGeo = new THREE.TorusGeometry(UNIT_SIZE/3, UNIT_SIZE/6, 16, 32);
+        
+        const rampShape = new THREE.Shape();
+        rampShape.moveTo(-UNIT_SIZE/2, -UNIT_SIZE/2);
+        rampShape.lineTo(UNIT_SIZE/2, -UNIT_SIZE/2);
+        rampShape.lineTo(-UNIT_SIZE/2, UNIT_SIZE/2);
+        rampShape.lineTo(-UNIT_SIZE/2, -UNIT_SIZE/2);
+        const rampGeo = new THREE.ExtrudeGeometry(rampShape, { depth: UNIT_SIZE, bevelEnabled: false });
+        rampGeo.center();
+
+        // Ghost Block Hologram Setup
+        const ghostBlock = new THREE.Group();
+        const ghostMesh = new THREE.Mesh(blockGeo, new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.5}));
+        const ghostEdgesMat = new THREE.LineBasicMaterial({ color: 0xffffff, opacity: 0.8, transparent: true });
+        const ghostEdges = new THREE.LineSegments(new THREE.EdgesGeometry(blockGeo), ghostEdgesMat);
+        ghostBlock.add(ghostMesh);
+        ghostBlock.add(ghostEdges);
+        scene.add(ghostBlock);
+
+        function createAvatarMesh(colors) {
+            const group = new THREE.Group();
+            const matHead = new THREE.MeshLambertMaterial({color: colors.head});
+            const matTorso = new THREE.MeshLambertMaterial({color: colors.torso});
+            const matArms = new THREE.MeshLambertMaterial({color: colors.arms});
+            const matLegs = new THREE.MeshLambertMaterial({color: colors.legs});
+
+            const head = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), matHead);
+            head.position.y = 9; head.castShadow = true; group.add(head);
+
+            const torso = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3, 1), matTorso);
+            torso.position.y = 6; torso.castShadow = true; group.add(torso);
+
+            function createLimb(mat, pivotX, pivotY, pivotZ, width, length, depth) {
+                const pivot = new THREE.Group();
+                pivot.position.set(pivotX, pivotY, pivotZ);
+                const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, length, depth), mat);
+                mesh.position.y = -length / 2;
+                mesh.castShadow = true;
+                pivot.add(mesh);
+                return { pivot, mesh };
+            }
+
+            const armL = createLimb(matArms, -1.8, 7.5, 0, 1, 2, 1);
+            const elbowL = createLimb(matArms, 0, -2, 0, 0.9, 2, 0.9);
+            armL.pivot.add(elbowL.pivot); group.add(armL.pivot);
+
+            const armR = createLimb(matArms, 1.8, 7.5, 0, 1, 2, 1);
+            const elbowR = createLimb(matArms, 0, -2, 0, 0.9, 2, 0.9);
+            armR.pivot.add(elbowR.pivot); group.add(armR.pivot);
+
+            const legL = createLimb(matLegs, -0.75, 4.5, 0, 1, 2, 1);
+            const kneeL = createLimb(matLegs, 0, -2, 0, 0.9, 2, 0.9);
+            legL.pivot.add(kneeL.pivot); group.add(legL.pivot);
+
+            const legR = createLimb(matLegs, 0.75, 4.5, 0, 1, 2, 1);
+            const kneeR = createLimb(matLegs, 0, -2, 0, 0.9, 2, 0.9);
+            legR.pivot.add(kneeR.pivot); group.add(legR.pivot);
+
+            group.userData = { 
+                head: head, limbs: [armL.pivot, armR.pivot, legL.pivot, legR.pivot], 
+                joints: [elbowL.pivot, elbowR.pivot, kneeL.pivot, kneeR.pivot],
+                mats: { head: matHead, torso: matTorso, arms: matArms, legs: matLegs },
+                tumbleVelocity: new THREE.Vector3(),
+                limbVelocities: [new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3(), new THREE.Vector3()]
+            };
+            return group;
+        }
+
+        let myAvatarMesh = createAvatarMesh(myAvatarColors);
+        myAvatarMesh.userData.head.visible = false; 
+        scene.add(myAvatarMesh);
+
+        // Standardized Garbage Collection
+        function destroyBlock(obj) {
+            if(obj.userData.cssDiv && obj.userData.cssDiv.parentNode) {
+                obj.userData.cssDiv.parentNode.removeChild(obj.userData.cssDiv);
+            }
+            if(obj.userData.light) scene.remove(obj.userData.light);
+            if(transformControl.object === obj) transformControl.detach();
+
+            scene.remove(obj);
+            const idx = objects.indexOf(obj);
+            if(idx > -1) objects.splice(idx, 1);
+            if(obj.userData.type === 'Spawn') {
+                const spIdx = spawnPoints.indexOf(obj);
+                if(spIdx > -1) spawnPoints.splice(spIdx, 1);
+            }
+        }
+
+        function instantiateBlock(position, typeId, colorHex, scriptCode = "", sx = 1, sy = 1, sz = 1) {
+            const typeDef = Object.values(BLOCK_TYPES).find(t => t.id === typeId) || BLOCK_TYPES.NORMAL;
+            const finalColor = typeDef.colorOverride !== null ? typeDef.colorOverride : colorHex;
+            
+            let geo = blockGeo;
+            if (typeDef.shape === 'ramp') geo = rampGeo;
+            else if (typeDef.shape === 'cylinder') geo = cylinderGeo;
+            else if (typeDef.shape === 'sphere') geo = sphereGeo;
+            else if (typeDef.shape === 'cone') geo = coneGeo;
+            else if (typeDef.shape === 'torus') geo = torusGeo;
+
+            const matParams = { color: finalColor, ...typeDef.matParams };
+            if(typeId === 'Spawn') { matParams.transparent = true; matParams.opacity = 0.4; } 
+            else if (typeId === 'Lava') { matParams.emissive = new THREE.Color(0x880000); }
+            else if (typeDef.isNeon || typeDef.isLamp) { matParams.emissive = new THREE.Color(finalColor); matParams.emissiveIntensity = 0.8; }
+            
+            const material = new THREE.MeshLambertMaterial(matParams);
+            const mesh = new THREE.Mesh(geo, material);
+            mesh.position.copy(position);
+            mesh.castShadow = true; mesh.receiveShadow = true;
+
+            mesh.scale.set(sx, sy, sz);
+
+            mesh.userData = { type: typeId, colorHex: colorHex, script: scriptCode };
+
+            if (typeDef.isLamp) {
+                const light = new THREE.PointLight(finalColor, 1.5, 60 * Math.max(sx, sy, sz));
+                light.position.set(0, UNIT_SIZE/2 + 0.1, 0);
+                mesh.add(light);
+                mesh.userData.light = light;
+            }
+
+            const edgesMat = new THREE.LineBasicMaterial({ color: 0x000000, opacity: 0.3, transparent: true });
+            mesh.add(new THREE.LineSegments(new THREE.EdgesGeometry(geo), edgesMat));
+
+            if (typeId === 'TV') {
+                const res = 800; 
+                const iframe = document.createElement('iframe');
+                iframe.style.width = res + 'px';
+                iframe.style.height = res + 'px';
+                iframe.style.border = 'none';
+                iframe.style.backgroundColor = '#000';
+                iframe.style.boxSizing = 'border-box';
+                iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
+                iframe.srcdoc = scriptCode || DEFAULT_TV_HTML;
+                
+                const cssObject = new CSS3DObject(iframe);
+                cssObject.scale.set(UNIT_SIZE/res, UNIT_SIZE/res, UNIT_SIZE/res);
+                cssObject.position.set(0, 0, UNIT_SIZE/2 + 0.02); 
+                
+                const holeGeo = new THREE.PlaneGeometry(UNIT_SIZE, UNIT_SIZE);
+                const holeMat = new THREE.MeshBasicMaterial({ 
+                    blending: THREE.CustomBlending,
+                    blendEquation: THREE.AddEquation,
+                    blendSrc: THREE.ZeroFactor,
+                    blendDst: THREE.ZeroFactor,
+                    side: THREE.DoubleSide,
+                    depthWrite: true
+                }); 
+                const holeMesh = new THREE.Mesh(holeGeo, holeMat);
+                holeMesh.position.set(0, 0, UNIT_SIZE/2 + 0.02);
+                
+                mesh.add(cssObject);
+                mesh.add(holeMesh);
+                mesh.userData.cssDiv = iframe;
+            }
+
+            scene.add(mesh);
+            objects.push(mesh);
+            if(typeId === 'Spawn') spawnPoints.push(mesh);
+            return mesh;
+        }
+
+        // --- SCRIPT / HTML EDITOR MODAL ---
+        let scriptedBlockTarget = null;
+        window.openScriptModal = (block) => {
+            scriptedBlockTarget = block;
+            document.getElementById('block-script-input').value = block.userData.script || "";
+            
+            if (block.userData.type === 'TV') {
+                document.getElementById('script-modal-title').innerHTML = "📺 HTML TV Editor";
+                document.getElementById('script-modal-desc').innerHTML = "Write full HTML/CSS/JS to display on this 800x800 TV screen.";
+                document.getElementById('block-script-input').placeholder = "<style>h1{color:red;}</style>\n<h1>Weblox</h1>\n<script>alert('Running!');</sc"+"ript>";
+            } else {
+                document.getElementById('script-modal-title').innerHTML = "📜 Block Script Editor";
+                document.getElementById('script-modal-desc').innerHTML = "Write JavaScript to control this block in Play Mode. Variables: <code>block</code>, <code>player</code>, <code>game</code>, <code>time</code>, <code>delta</code>.";
+                document.getElementById('block-script-input').placeholder = "// Example: Hover and interact\nif (!block.userData.init) {\n  block.userData.init = true;\n  block.userData.onClick = () => game.explode(block.position);\n  block.userData.onTouch = () => game.bounce(200);\n}\nblock.position.y += Math.sin(time / 200) * 0.1;";
+            }
+
+            document.getElementById('script-modal').classList.replace('hidden', 'flex');
+            unlockPointer(); // Ensure mouse is available for the text area
+        };
+        window.closeScriptModal = () => {
+            document.getElementById('script-modal').classList.replace('flex', 'hidden');
+            scriptedBlockTarget = null;
+        };
+        window.saveScript = () => {
+            if (scriptedBlockTarget) {
+                const newCode = document.getElementById('block-script-input').value;
+                scriptedBlockTarget.userData.script = newCode;
+                if (scriptedBlockTarget.userData.type === 'TV' && scriptedBlockTarget.userData.cssDiv) {
+                    scriptedBlockTarget.userData.cssDiv.srcdoc = newCode || DEFAULT_TV_HTML;
+                }
+                showNotification(scriptedBlockTarget.userData.type === 'TV' ? "HTML saved to TV!" : "Script saved to block!");
+            }
+            window.closeScriptModal();
+        };
+
+        const isTyping = () => {
+            const active = document.activeElement;
+            return active && (active.tagName === 'INPUT' || active.tagName === 'TEXTAREA');
+        };
+
+        // --- INPUT, PHYSICS & PLAYER STATE ---
+        let moveFwd = false, moveBwd = false, moveL = false, moveR = false, moveUp = false, moveDown = false;
+        let canJump = false;
+        let isSprinting = false;
+        let isGrappling = false;
+        let grappleTarget = new THREE.Vector3();
+        let playerHealth = 100;
+        let activeCheckpoint = null;
+        
+        const velocity = new THREE.Vector3();
+        let prevTime = performance.now();
+
+        // Grapple Visuals
+        const grappleMat = new THREE.LineBasicMaterial({ color: 0xffffff, linewidth: 2 });
+        const grappleGeo = new THREE.BufferGeometry().setFromPoints([new THREE.Vector3(), new THREE.Vector3()]);
+        const grappleLine = new THREE.Line(grappleGeo, grappleMat);
+        scene.add(grappleLine);
+        grappleLine.visible = false;
+
+        // --- MOUSE CONTROLS ---
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2(0, 0);
+
+        document.addEventListener('mousedown', (e) => {
+            if (e.target.closest('#ui-layer') || e.target.closest('#script-modal') || e.target.closest('#publish-modal') || e.target.closest('#auth-modal')) return;
+
+            if (e.button === 2) {
+                isRightMouseDown = true;
+                mouseMovedDuringRightClick = false;
+                if (activeCamera === thirdPersonCamera) {
+                    lockPointer(); // Lock mouse to screen while orbiting in 3rd person
+                }
+            }
+
+            if (e.button === 0) { // Left Click
+                if (isTransformDragging) return;
+
+                if (activeCamera === camera && !isPointerLocked && !isInteracting) {
+                    lockPointer(); // First click into 1st person view locks it
+                    return;
+                }
+
+                // If in first person, aim is dead center
+                if (activeCamera === camera) {
+                    mouse.x = 0; mouse.y = 0;
+                }
+
+                raycaster.setFromCamera(mouse, activeCamera);
+                const intersects = raycaster.intersectObjects(objects, false);
+
+                if (ENGINE_MODE === 'PLAY') {
+                    if (!isRagdolled && intersects.length > 0 && intersects[0].distance <= 40) {
+                        const obj = intersects[0].object;
+                        if (obj.userData.onClick) obj.userData.onClick();
+                    }
+                    return;
+                }
+
+                // Edit Mode Placement/Scripting/Painting/Cloning/Transforming
+                if (intersects.length > 0) {
+                    const intersect = intersects[0];
+                    if (intersect.distance > 80) return;
+
+                    if (EDITOR_TOOL === 'SCRIPT') {
+                        if (intersect.object !== baseplate && intersect.object.userData.type !== 'Spawn') window.openScriptModal(intersect.object);
+                    } else if (EDITOR_TOOL === 'PAINT') {
+                        if (intersect.object !== baseplate) {
+                            const obj = intersect.object;
+                            const tDef = Object.values(BLOCK_TYPES).find(t => t.id === obj.userData.type);
+                            if (!tDef.colorOverride) {
+                                obj.material.color.setHex(currentColorHex);
+                                obj.userData.colorHex = currentColorHex;
+                                if (tDef.isNeon || tDef.isLamp) obj.material.emissive.setHex(currentColorHex);
+                                if (tDef.isLamp && obj.userData.light) obj.userData.light.color.setHex(currentColorHex);
+                                playSound('place');
+                                showNotification("Painted Block!");
+                            } else {
+                                showNotification("Cannot paint this block type.");
+                            }
+                        }
+                    } else if (EDITOR_TOOL === 'CLONE') {
+                        if (intersect.object !== baseplate) {
+                            const obj = intersect.object;
+                            currentType = Object.values(BLOCK_TYPES).find(t => t.id === obj.userData.type);
+                            currentColorHex = obj.userData.colorHex;
+                            currentPlaceScale = obj.scale.x; 
+                            currentPlaceRotation = obj.rotation.y;
+                            initUI(); // Re-render selected UI
+                            window.setEditorTool('BUILD');
+                            playSound('place');
+                            showNotification("Cloned Block Properties!");
+                        }
+                    } else if (EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'SCALE') {
+                        if (intersect.object !== baseplate) {
+                            transformControl.attach(intersect.object);
+                        } else {
+                            transformControl.detach();
+                        }
+                    } else if (EDITOR_TOOL === 'BUILD') {
+                        if (ghostBlock.visible) {
+                            const mesh = instantiateBlock(ghostBlock.position, currentType.id, currentColorHex, "", currentPlaceScale, currentPlaceScale, currentPlaceScale);
+                            mesh.rotation.copy(ghostBlock.rotation);
+                            playSound('place');
+                        }
+                    }
+                } else if (EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'SCALE') {
+                    transformControl.detach();
+                }
+            }
+        });
+
+        document.addEventListener('mouseup', (e) => {
+            if (e.button === 2) {
+                isRightMouseDown = false;
+                if (activeCamera === thirdPersonCamera && isPointerLocked) {
+                    unlockPointer(); // Un-freeze mouse upon release
+                }
+                
+                // If the user right-clicked without moving the mouse much, act as a DELETE click
+                if (!mouseMovedDuringRightClick && ENGINE_MODE === 'EDIT' && (EDITOR_TOOL === 'BUILD' || EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'SCALE' || EDITOR_TOOL === 'PAINT' || EDITOR_TOOL === 'CLONE')) {
+                    if (activeCamera === camera) { mouse.x = 0; mouse.y = 0; }
+                    raycaster.setFromCamera(mouse, activeCamera);
+                    const intersects = raycaster.intersectObjects(objects, false);
+                    if (intersects.length > 0 && intersects[0].object !== baseplate && intersects[0].distance <= 80) {
+                        destroyBlock(intersects[0].object);
+                        playSound('hurt');
+                    }
+                }
+            }
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            // Apply camera rotation ONLY when mouse is locked natively
+            // (1st person view OR holding right click in 3rd person)
+            if (isPointerLocked) {
+                if (activeCamera === camera || (activeCamera === thirdPersonCamera && isRightMouseDown)) {
+                    cameraYaw -= e.movementX * 0.003;
+                    cameraPitch -= e.movementY * 0.003;
+                    cameraPitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, cameraPitch));
+                    mouseMovedDuringRightClick = true;
+                }
+            } else if (isRightMouseDown && activeCamera === thirdPersonCamera) {
+                // Fallback drag logic for browsers that deny pointer lock dynamically
+                cameraYaw -= e.movementX * 0.003;
+                cameraPitch -= e.movementY * 0.003;
+                cameraPitch = Math.max(-Math.PI/2 + 0.1, Math.min(Math.PI/2 - 0.1, cameraPitch));
+                mouseMovedDuringRightClick = true;
+            }
+
+            // Provide accurate raycast mouse coordinates
+            if (isPointerLocked && activeCamera === camera) {
+                mouse.x = 0;
+                mouse.y = 0;
+            } else {
+                mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+            }
+        });
+
+        document.addEventListener('contextmenu', e => e.preventDefault());
+
+        // --- KEYBOARD CONTROLS ---
+        document.addEventListener('keydown', (e) => {
+            if (isTyping()) return;
+
+            switch (e.code) {
+                case 'KeyW': moveFwd = true; break;
+                case 'KeyA': moveL = true; break;
+                case 'KeyS': moveBwd = true; break;
+                case 'KeyD': moveR = true; break;
+                case 'Digit1': if (ENGINE_MODE === 'PLAY' && !isRagdolled) throwBomb(); break;
+                case 'KeyX': 
+                    if (ENGINE_MODE === 'PLAY' && activeCamera === camera) {
+                        if (isInteracting) window.exitInteractMode();
+                        else window.enterInteractMode();
+                    }
+                    break;
+                case 'KeyE': 
+                    if (ENGINE_MODE === 'PLAY' && !isRagdolled && !isGrappling) {
+                        if (activeCamera === camera) { mouse.x = 0; mouse.y = 0; }
+                        raycaster.setFromCamera(mouse, activeCamera);
+                        const hits = raycaster.intersectObjects(objects, false);
+                        if (hits.length > 0 && hits[0].distance < 200) {
+                            isGrappling = true;
+                            grappleTarget.copy(hits[0].point);
+                            grappleLine.visible = true;
+                            velocity.y = Math.max(velocity.y, 50); // Small hop
+                            playSound('grapple');
+                        }
+                    }
+                    break;
+                case 'KeyR':
+                    if (ENGINE_MODE === 'EDIT') currentPlaceRotation -= Math.PI / 2;
+                    break;
+                case 'Equal':
+                case 'NumpadAdd':
+                    if (ENGINE_MODE === 'EDIT' && EDITOR_TOOL === 'BUILD') {
+                        currentPlaceScale = Math.min(10, currentPlaceScale + 1);
+                        showNotification(`Scale: ${currentPlaceScale}x`);
+                    }
+                    break;
+                case 'Minus':
+                case 'NumpadSubtract':
+                    if (ENGINE_MODE === 'EDIT' && EDITOR_TOOL === 'BUILD') {
+                        currentPlaceScale = Math.max(1, currentPlaceScale - 1);
+                        showNotification(`Scale: ${currentPlaceScale}x`);
+                    }
+                    break;
+                case 'KeyC':
+                    if (ENGINE_MODE === 'EDIT') {
+                        isNoclip = !isNoclip;
+                        showNotification(isNoclip ? "Noclip Enabled" : "Collisions Enabled");
+                        playSound('place');
+                    }
+                    break;
+                case 'KeyF':
+                    isFlashlightOn = !isFlashlightOn;
+                    flashlight.intensity = isFlashlightOn ? 2.0 : 0;
+                    playSound('place');
+                    showNotification(isFlashlightOn ? "Flashlight On" : "Flashlight Off");
+                    break;
+                case 'Space': 
+                    if(ENGINE_MODE === 'PLAY' && canJump && !isRagdolled) { velocity.y = 150; canJump = false; playSound('jump'); }
+                    if(ENGINE_MODE === 'EDIT') moveUp = true; break;
+                case 'ShiftLeft': 
+                    if(ENGINE_MODE === 'EDIT') moveDown = true; 
+                    else if (ENGINE_MODE === 'PLAY') isSprinting = true;
+                    break;
+                case 'KeyV': 
+                    if (activeCamera === camera) { 
+                        activeCamera = thirdPersonCamera; 
+                        myAvatarMesh.userData.head.visible = true; 
+                        if (isPointerLocked && !isRightMouseDown) unlockPointer(); // Free mouse natively in 3rd person
+                        transformControl.camera = activeCamera;
+                    } 
+                    else { 
+                        activeCamera = camera; 
+                        myAvatarMesh.userData.head.visible = false; 
+                        if (!isPointerLocked && !isInteracting) lockPointer(); // Lock mouse in 1st person
+                        document.getElementById('blocker').classList.add('hidden');
+                        transformControl.camera = activeCamera;
+                    }
+                    break;
+            }
+        });
+
+        // Fixed sticky keys by ignoring isTyping() for keyup events
+        document.addEventListener('keyup', (e) => {
+            switch (e.code) {
+                case 'KeyW': moveFwd = false; break;
+                case 'KeyA': moveL = false; break;
+                case 'KeyS': moveBwd = false; break;
+                case 'KeyD': moveR = false; break;
+                case 'Space': moveUp = false; break;
+                case 'ShiftLeft': 
+                    if(ENGINE_MODE === 'EDIT') moveDown = false; 
+                    else if (ENGINE_MODE === 'PLAY') isSprinting = false;
+                    break;
+            }
+        });
+
+        // --- GAMEPLAY INTERACTION ---
+
+        function throwBomb() {
+            playSound('jump');
+            const bombGeo = new THREE.BoxGeometry(1.5, 1.5, 1.5);
+            const bombMat = new THREE.MeshLambertMaterial({color: 0x111111});
+            const bomb = new THREE.Mesh(bombGeo, bombMat);
+            bomb.position.copy(playerObject.position);
+            
+            // Throw from current camera view
+            const throwDir = new THREE.Vector3(0, 0, -1);
+            throwDir.applyEuler(new THREE.Euler(cameraPitch, cameraYaw, 0, 'YXZ'));
+            
+            bomb.userData.velocity = throwDir.multiplyScalar(150).add(velocity); 
+            bomb.userData.timer = 2.0; 
+            scene.add(bomb); activeBombs.push(bomb);
+        }
+
+        function triggerExplosion(pos) {
+            playSound('boom');
+            const expGeo = new THREE.SphereGeometry(1, 16, 16);
+            const expMat = new THREE.MeshBasicMaterial({color: 0xff8800, transparent: true, opacity: 1});
+            const expMesh = new THREE.Mesh(expGeo, expMat);
+            expMesh.position.copy(pos); scene.add(expMesh);
+            explosions.push({ mesh: expMesh, scale: 1, life: 1.0 });
+
+            if (playerObject.position.distanceTo(pos) < 35) ragdollPlayer(pos, Math.max(200, 800 - playerObject.position.distanceTo(pos) * 20));
+
+            for (let i = objects.length - 1; i >= 0; i--) {
+                const obj = objects[i];
+                if (obj === baseplate || obj.userData.type === 'Spawn') continue; 
+                const scaleRadiusOffset = Math.max(obj.scale.x, obj.scale.y, obj.scale.z) * 2.5;
+                if (obj.position.distanceTo(pos) < 25 + scaleRadiusOffset) { destroyBlock(obj); }
+            }
+        }
+
+        function updateHealth(amt) {
+            if (isRagdolled) return;
+            playerHealth += amt;
+            playerHealth = Math.max(0, Math.min(100, playerHealth));
+            document.getElementById('health-fill').style.width = playerHealth + '%';
+            if (playerHealth <= 0) ragdollPlayer(playerObject.position, 200);
+        }
+
+        function ragdollPlayer(blastOrigin, force) {
+            if (isRagdolled) return;
+            playSound('hurt');
+            isRagdolled = true; ragdollTimer = 4.0; 
+            velocity.set(0,0,0);
+            isGrappling = false;
+            grappleLine.visible = false;
+            
+            if (activeCamera === camera) {
+                activeCamera = thirdPersonCamera;
+                if (isPointerLocked && !isRightMouseDown) unlockPointer(); // Free mouse since we moved to 3rd person
+                transformControl.camera = activeCamera;
+            }
+            myAvatarMesh.visible = false;
+
+            const partsToSpawn = [
+                { source: myAvatarMesh.userData.head, w: 2, h: 2, d: 2, color: myAvatarColors.head },
+                { source: myAvatarMesh.children[1], w: 2.5, h: 3, d: 1, color: myAvatarColors.torso },
+                { source: myAvatarMesh.userData.limbs[0].children[0], w: 1, h: 2, d: 1, color: myAvatarColors.arms },
+                { source: myAvatarMesh.userData.joints[0].children[0], w: 0.9, h: 2, d: 0.9, color: myAvatarColors.arms },
+                { source: myAvatarMesh.userData.limbs[1].children[0], w: 1, h: 2, d: 1, color: myAvatarColors.arms },
+                { source: myAvatarMesh.userData.joints[1].children[0], w: 0.9, h: 2, d: 0.9, color: myAvatarColors.arms },
+                { source: myAvatarMesh.userData.limbs[2].children[0], w: 1, h: 2, d: 1, color: myAvatarColors.legs },
+                { source: myAvatarMesh.userData.joints[2].children[0], w: 0.9, h: 2, d: 0.9, color: myAvatarColors.legs },
+                { source: myAvatarMesh.userData.limbs[3].children[0], w: 1, h: 2, d: 1, color: myAvatarColors.legs },
+                { source: myAvatarMesh.userData.joints[3].children[0], w: 0.9, h: 2, d: 0.9, color: myAvatarColors.legs }
+            ];
+
+            partsToSpawn.forEach(pData => {
+                const part = new THREE.Mesh(new THREE.BoxGeometry(pData.w, pData.h, pData.d), new THREE.MeshLambertMaterial({color: pData.color}));
+                const worldPos = new THREE.Vector3(); pData.source.getWorldPosition(worldPos);
+                part.position.copy(worldPos);
+                const worldQuat = new THREE.Quaternion(); pData.source.getWorldQuaternion(worldQuat);
+                part.quaternion.copy(worldQuat);
+                part.castShadow = true; part.receiveShadow = true;
+                part.add(new THREE.LineSegments(new THREE.EdgesGeometry(part.geometry), new THREE.LineBasicMaterial({ color: 0x000000, opacity: 0.3, transparent: true })));
+
+                const dir = worldPos.clone().sub(blastOrigin).normalize(); dir.y += 0.5 + Math.random(); dir.normalize();
+                dir.x += (Math.random() - 0.5) * 1.5; dir.z += (Math.random() - 0.5) * 1.5;
+
+                part.userData = {
+                    velocity: new THREE.Vector3(velocity.x * 0.5 + dir.x * force * (0.1 + Math.random() * 0.2), Math.max(0, velocity.y * 0.5) + dir.y * force * (0.1 + Math.random() * 0.2), velocity.z * 0.5 + dir.z * force * (0.1 + Math.random() * 0.2)),
+                    tumble: new THREE.Vector3((Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8, (Math.random() - 0.5) * 8),
+                    size: Math.max(pData.w, pData.h, pData.d)
+                };
+                scene.add(part); ragdollParts.push(part);
+            });
+        }
+
+        // --- ENGINE MODES ---
+        window.toggleEngineMode = function toggleEngineMode() {
+            if(ENGINE_MODE === 'EDIT') {
+                ENGINE_MODE = 'PLAY';
+                document.getElementById('mode-indicator').innerText = 'PLAY MODE';
+                document.getElementById('mode-indicator').className = 'text-xs bg-green-900/50 border border-green-700 text-green-400 px-3 py-1 rounded font-bold mr-4';
+                document.getElementById('btn-play').style.display = 'none';
+                document.getElementById('btn-stop').style.display = 'flex';
+                document.getElementById('editor-tools').classList.add('hidden');
+                document.getElementById('play-hud').classList.replace('hidden', 'flex');
+                
+                transformControl.detach();
+
+                spawnPoints.forEach(s => s.material.opacity = 0.0);
+
+                objects.forEach(obj => {
+                    if (obj.userData.script && obj.userData.type !== 'TV') {
+                        try {
+                            obj.userData.runScript = new Function('block', 'player', 'time', 'delta', 'game', obj.userData.script);
+                            obj.userData.initialPos = obj.position.clone();
+                            obj.userData.initialRot = obj.rotation.clone();
+                            obj.userData.init = false; 
+                            obj.userData.onClick = null;
+                            obj.userData.onTouch = null;
+                        } catch (e) {}
+                    }
+                });
+
+                activeCheckpoint = null;
+                respawnPlayer();
+
+            } else {
+                ENGINE_MODE = 'EDIT';
+                document.getElementById('mode-indicator').innerText = 'EDIT MODE';
+                document.getElementById('mode-indicator').className = 'text-xs bg-blue-900/50 border border-blue-700 text-blue-300 px-3 py-1 rounded font-bold mr-4';
+                document.getElementById('btn-play').style.display = 'flex';
+                document.getElementById('btn-stop').style.display = 'none';
+                document.getElementById('editor-tools').classList.remove('hidden');
+                document.getElementById('play-hud').classList.replace('flex', 'hidden');
+                
+                spawnPoints.forEach(s => s.material.opacity = 0.4);
+                
+                objects.forEach(obj => {
+                    if (obj.userData.initialPos) {
+                        obj.position.copy(obj.userData.initialPos);
+                        obj.rotation.copy(obj.userData.initialRot);
+                        delete obj.userData.runScript; delete obj.userData.initialPos; delete obj.userData.initialRot;
+                    }
+                });
+
+                respawnPlayer();
+                window.setEditorTool(EDITOR_TOOL); // Re-attach transform tool if active
+            }
+        }
+
+        function respawnPlayer() {
+            velocity.set(0,0,0); isRagdolled = false;
+            isGrappling = false; grappleLine.visible = false;
+            playerHealth = 100; updateHealth(0);
+            
+            ragdollParts.forEach(p => scene.remove(p)); ragdollParts = [];
+            myAvatarMesh.visible = true; myAvatarMesh.rotation.set(0,0,0);
+            myAvatarMesh.userData.head.visible = (activeCamera === thirdPersonCamera);
+
+            if (activeCheckpoint) {
+                playerObject.position.copy(activeCheckpoint);
+            } else if (spawnPoints.length > 0) {
+                const sp = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
+                playerObject.position.set(sp.position.x, sp.position.y + 9, sp.position.z);
+            } else { playerObject.position.set(0, 9, 0); }
+            
+            if (activeCamera === camera && !isInteracting) {
+                lockPointer();
+            }
+        }
+
+        // --- LEVEL SERIALIZATION ---
+        window.saveLevel = function saveLevel() {
+            const levelData = objects.filter(o => o !== baseplate).map(o => ({
+                px: o.position.x, py: o.position.y, pz: o.position.z,
+                rx: o.rotation.x, ry: o.rotation.y, rz: o.rotation.z,
+                sx: o.scale.x, sy: o.scale.y, sz: o.scale.z,
+                type: o.userData.type, color: o.userData.colorHex, 
+                script: o.userData.script || ""
+            }));
+            localStorage.setItem('weblox_studio_save', JSON.stringify(levelData));
+            showNotification("Workspace Saved Locally!");
+        }
+
+        window.loadLevel = function loadLevel() {
+            const dataStr = localStorage.getItem('weblox_studio_save');
+            if(!dataStr) { showNotification("No local save found."); return; }
+            window.clearLevel(false);
+            try {
+                JSON.parse(dataStr).forEach(item => {
+                    const mesh = instantiateBlock(new THREE.Vector3(item.px, item.py, item.pz), item.type, item.color, item.script, item.sx || item.scale || 1, item.sy || item.scale || 1, item.sz || item.scale || 1);
+                    if (item.ry !== undefined) mesh.rotation.set(item.rx || 0, item.ry || 0, item.rz || 0);
+                });
+                showNotification("Workspace Loaded!");
+            } catch(e) { showNotification("Error loading save."); }
+        }
+
+        window.clearLevel = function clearLevel(notify = true) {
+            transformControl.detach();
+            const toRemove = objects.filter(o => o !== baseplate);
+            toRemove.forEach(o => destroyBlock(o));
+            if(notify) showNotification("Workspace Cleared");
+        }
+
+        window.showPublishModal = () => { document.getElementById('publish-modal').classList.replace('hidden', 'flex'); unlockPointer(); }
+        window.closePublishModal = () => { document.getElementById('publish-modal').classList.replace('flex', 'hidden'); document.getElementById('publish-name').value = ''; }
+        
+        window.submitPublish = async () => {
+            const name = document.getElementById('publish-name').value.trim();
+            if(!name) { showNotification("Enter a valid name"); return; }
+            if(!currentUser || !db) { showNotification("Database connecting... try again."); return; }
+            const levelData = objects.filter(o => o !== baseplate).map(o => ({
+                px: o.position.x, py: o.position.y, pz: o.position.z, rx: o.rotation.x, ry: o.rotation.y, rz: o.rotation.z,
+                sx: o.scale.x, sy: o.scale.y, sz: o.scale.z,
+                type: o.userData.type, color: o.userData.colorHex, script: o.userData.script || ""
+            }));
+            try {
+                const gamesRef = collection(db, 'artifacts', appId, 'public', 'data', 'games');
+                await addDoc(gamesRef, { name: name, author: currentUser.uid.substring(0, 6), data: JSON.stringify(levelData), timestamp: Date.now() });
+                showNotification("Success! Published to Weblox Player Client!"); 
+                window.closePublishModal();
+            } catch(e) { showNotification("Failed to publish to Cloud."); }
+        };
+
+        // --- GAME LOOP & ROBUST COLLISIONS ---
+        const playerRaycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 10);
+        const horizRaycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(), 0, 2.5);
+
+        // Define game API for scripts
+        const gameAPI = {
+            get playerPos() { return playerObject.position; },
+            get playerVelocity() { return velocity; },
+            bounce: (force) => { velocity.y = force; canJump = false; playSound('jump'); },
+            explode: (pos) => triggerExplosion(pos),
+            notify: (msg) => showNotification(msg),
+            spawn: (x,y,z, type='Normal', color=0xFFFFFF, scale=1) => instantiateBlock(new THREE.Vector3(x,y,z), type, color, "", scale, scale, scale),
+            destroy: (b) => destroyBlock(b),
+            damage: (amt) => updateHealth(-amt),
+            heal: (amt) => updateHealth(amt)
+        };
+
+        function getHorizontalCollision(dirVector, moveDist) {
+            const pos = playerObject.position.clone();
+            const radius = 1.0; 
+            const rightVector = new THREE.Vector3(-dirVector.z, 0, dirVector.x).normalize().multiplyScalar(radius);
+            const leftVector = rightVector.clone().negate();
+
+            const origins = [pos.clone(), pos.clone().add(rightVector), pos.clone().add(leftVector)];
+            const collidables = objects.filter(o => o.userData.type !== 'Spawn' && o.userData.type !== 'Checkpoint');
+            const checkDist = Math.max(1.5, moveDist + 0.5);
+
+            for (let origin of origins) {
+                for (let yOffset of [-8, -4, -1]) {
+                    const rayOrigin = origin.clone();
+                    rayOrigin.y += yOffset;
+                    horizRaycaster.set(rayOrigin, dirVector);
+                    const hits = horizRaycaster.intersectObjects(collidables, false);
+                    if (hits.length > 0 && hits[0].distance < checkDist) return hits[0].object;
+                }
+            }
+            return null;
+        }
+
+        function checkGroundCollision(fallDist) {
+            const pos = playerObject.position.clone();
+            pos.y -= 8.0;
+            const radius = 1.0;
+            const origins = [
+                pos.clone(),
+                pos.clone().add(new THREE.Vector3(radius, 0, 0)),
+                pos.clone().add(new THREE.Vector3(-radius, 0, 0)),
+                pos.clone().add(new THREE.Vector3(0, 0, radius)),
+                pos.clone().add(new THREE.Vector3(0, 0, -radius))
+            ];
+            
+            const collidables = objects.filter(o => o.userData.type !== 'Spawn' && o.userData.type !== 'Checkpoint');
+            const checkDist = Math.max(1.2, fallDist + 0.5);
+            
+            let closestHit = null;
+            for (let origin of origins) {
+                playerRaycaster.set(origin, new THREE.Vector3(0, -1, 0));
+                const hits = playerRaycaster.intersectObjects(collidables, false);
+                if (hits.length > 0 && hits[0].distance < checkDist) {
+                    if (!closestHit || hits[0].distance < closestHit.distance) {
+                        closestHit = hits[0];
+                    }
+                }
+            }
+            return closestHit;
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = performance.now();
+            const delta = Math.min((time - prevTime) / 1000, 0.1);
+
+            for (let i = activeBombs.length - 1; i >= 0; i--) {
+                const b = activeBombs[i];
+                b.userData.timer -= delta;
+                if (b.userData.timer <= 0) { triggerExplosion(b.position); scene.remove(b); activeBombs.splice(i, 1); continue; }
+                b.position.add(b.userData.velocity.clone().multiplyScalar(delta)); b.userData.velocity.y -= 300 * delta; 
+                if (b.position.y < UNIT_SIZE/2) { b.position.y = UNIT_SIZE/2; b.userData.velocity.y *= -0.5; b.userData.velocity.x *= 0.8; b.userData.velocity.z *= 0.8; }
+            }
+
+            for (let i = explosions.length - 1; i >= 0; i--) {
+                const exp = explosions[i];
+                exp.life -= delta * 2; exp.scale += delta * 40;
+                if (exp.life <= 0) { scene.remove(exp.mesh); explosions.splice(i, 1); } 
+                else { exp.mesh.scale.set(exp.scale, exp.scale, exp.scale); exp.mesh.material.opacity = exp.life; if(exp.life < 0.5) exp.mesh.material.color.setHex(0xff0000); }
+            }
+
+            function animateRig(meshGroup, walkSpeed, isJumping) {
+                if (isJumping) {
+                    meshGroup.userData.limbs[0].rotation.x += (3.14 - meshGroup.userData.limbs[0].rotation.x) * 0.2;
+                    meshGroup.userData.limbs[1].rotation.x += (3.14 - meshGroup.userData.limbs[1].rotation.x) * 0.2;
+                    meshGroup.userData.limbs[2].rotation.x += (-0.5 - meshGroup.userData.limbs[2].rotation.x) * 0.2;
+                    meshGroup.userData.limbs[3].rotation.x += (0.5 - meshGroup.userData.limbs[3].rotation.x) * 0.2;
+                    meshGroup.userData.limbs[0].rotation.z += (0.5 - meshGroup.userData.limbs[0].rotation.z) * 0.2;
+                    meshGroup.userData.limbs[1].rotation.z += (-0.5 - meshGroup.userData.limbs[1].rotation.z) * 0.2;
+                    meshGroup.userData.joints.forEach(j => j.rotation.x *= 0.8);
+                } else if (walkSpeed > 10) {
+                    const walkCycle = time * (isSprinting ? 0.025 : 0.015);
+                    meshGroup.userData.limbs[0].rotation.x = Math.sin(walkCycle) * 0.8;
+                    meshGroup.userData.limbs[1].rotation.x = -Math.sin(walkCycle) * 0.8;
+                    meshGroup.userData.limbs[2].rotation.x = -Math.sin(walkCycle) * 0.8;
+                    meshGroup.userData.limbs[3].rotation.x = Math.sin(walkCycle) * 0.8;
+                    meshGroup.userData.limbs.forEach(l => l.rotation.z *= 0.8);
+                    meshGroup.userData.joints[0].rotation.x = Math.min(0, meshGroup.userData.limbs[0].rotation.x * 1.5);
+                    meshGroup.userData.joints[1].rotation.x = Math.min(0, meshGroup.userData.limbs[1].rotation.x * 1.5);
+                    meshGroup.userData.joints[2].rotation.x = Math.max(0, meshGroup.userData.limbs[2].rotation.x * 1.5);
+                    meshGroup.userData.joints[3].rotation.x = Math.max(0, meshGroup.userData.limbs[3].rotation.x * 1.5);
+                } else {
+                    meshGroup.userData.limbs.forEach(l => { l.rotation.x *= 0.8; l.rotation.z *= 0.8; });
+                    meshGroup.userData.joints.forEach(j => j.rotation.x *= 0.8);
+                }
+            }
+
+            if (isRagdolled) {
+                ragdollParts.forEach(part => {
+                    part.userData.velocity.y -= 200 * delta; part.userData.velocity.x *= 0.95; part.userData.velocity.z *= 0.95;
+                    part.position.add(part.userData.velocity.clone().multiplyScalar(delta));
+                    part.rotation.x += part.userData.tumble.x * delta; part.rotation.y += part.userData.tumble.y * delta; part.rotation.z += part.userData.tumble.z * delta;
+                    const bound = part.userData.size / 2;
+                    if (part.position.y < bound) {
+                        part.position.y = bound; part.userData.velocity.y *= -0.5; part.userData.velocity.x *= 0.7; part.userData.velocity.z *= 0.7; part.userData.tumble.multiplyScalar(0.7);
+                    }
+                });
+            } else {
+                myAvatarMesh.position.copy(playerObject.position); myAvatarMesh.position.y -= 9; 
+                myAvatarMesh.rotation.x = 0; myAvatarMesh.rotation.z = 0;
+                myAvatarMesh.rotation.y = cameraYaw;
+                
+                const speed = Math.sqrt(velocity.x*velocity.x + velocity.z*velocity.z);
+                let walkSpeed = speed; if(ENGINE_MODE === 'EDIT' && (moveUp || moveDown)) walkSpeed += 20;
+                animateRig(myAvatarMesh, walkSpeed, !canJump && !isRagdolled && ENGINE_MODE === 'PLAY');
+            }
+
+            // Sync Player Yaw
+            playerObject.rotation.y = cameraYaw;
+
+            // FOV Sprinting Effect
+            let targetFov = isSprinting ? 95 : 75;
+            camera.fov += (targetFov - camera.fov) * 0.1; camera.updateProjectionMatrix();
+            thirdPersonCamera.fov += (targetFov - thirdPersonCamera.fov) * 0.1; thirdPersonCamera.updateProjectionMatrix();
+
+            // Update Camera Position based on Mode
+            if (activeCamera === thirdPersonCamera) {
+                if (isRagdolled && ragdollParts.length > 0) {
+                    const headPart = ragdollParts[0]; 
+                    const offset = new THREE.Vector3(0, 5, 20); 
+                    offset.applyEuler(new THREE.Euler(cameraPitch, cameraYaw, 0, 'YXZ'));
+                    thirdPersonCamera.position.lerp(headPart.position.clone().add(offset), 0.1); 
+                    thirdPersonCamera.lookAt(headPart.position);
+                } else {
+                    const offset = new THREE.Vector3(0, 2, 25);
+                    offset.applyEuler(new THREE.Euler(cameraPitch, cameraYaw, 0, 'YXZ'));
+                    thirdPersonCamera.position.copy(playerObject.position).add(offset);
+                    thirdPersonCamera.lookAt(playerObject.position);
+                    
+                    const camRay = new THREE.Raycaster(playerObject.position, offset.clone().normalize(), 0, offset.length());
+                    const hits = camRay.intersectObjects(objects, false);
+                    if (hits.length > 0) { 
+                        thirdPersonCamera.position.copy(hits[0].point); 
+                        thirdPersonCamera.position.add(offset.clone().normalize().multiplyScalar(-0.5)); 
+                    }
+                }
+            } else {
+                camera.position.copy(playerObject.position);
+                camera.rotation.set(cameraPitch, cameraYaw, 0, 'YXZ');
+            }
+
+            // Ghost Block logic for Editor
+            if (ENGINE_MODE === 'EDIT' && EDITOR_TOOL === 'BUILD' && !isRightMouseDown) {
+                if (activeCamera === camera && isPointerLocked) { mouse.x = 0; mouse.y = 0; }
+                raycaster.setFromCamera(mouse, activeCamera);
+                
+                const intersects = raycaster.intersectObjects(objects, false);
+                if (intersects.length > 0 && intersects[0].distance <= 80) {
+                    const intersect = intersects[0];
+                    const pos = intersect.point.clone().add(intersect.face.normal);
+                    pos.divideScalar(UNIT_SIZE).floor().multiplyScalar(UNIT_SIZE).addScalar(UNIT_SIZE / 2);
+                    
+                    const scaleOffset = (currentPlaceScale - 1) * (UNIT_SIZE / 2);
+                    pos.add(intersect.face.normal.clone().multiplyScalar(scaleOffset));
+                    
+                    ghostBlock.position.copy(pos);
+                    ghostBlock.scale.set(currentPlaceScale, currentPlaceScale, currentPlaceScale);
+                    ghostBlock.visible = true;
+                    
+                    const typeDef = Object.values(BLOCK_TYPES).find(t => t.id === currentType.id);
+                    ghostMesh.geometry = typeDef.shape === 'ramp' ? rampGeo : typeDef.shape === 'cylinder' ? cylinderGeo : typeDef.shape === 'sphere' ? sphereGeo : typeDef.shape === 'cone' ? coneGeo : typeDef.shape === 'torus' ? torusGeo : blockGeo;
+                    ghostEdges.geometry = new THREE.EdgesGeometry(ghostMesh.geometry);
+                    
+                    ghostMesh.material.color.setHex(typeDef.colorOverride !== null ? typeDef.colorOverride : currentColorHex);
+                    
+                    if (typeDef.id === 'TV') {
+                        const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+                        euler.setFromQuaternion(activeCamera.quaternion);
+                        ghostBlock.rotation.set(0, Math.round(euler.y / (Math.PI / 2)) * (Math.PI / 2) + Math.PI, 0);
+                    } else {
+                        ghostBlock.rotation.set(0, currentPlaceRotation, 0);
+                    }
+                } else {
+                    ghostBlock.visible = false;
+                }
+            } else {
+                ghostBlock.visible = false;
+            }
+
+            // Movement Reading Logic
+            if (!isRagdolled && !isTransformDragging) { 
+                // Set explicitly to prevent negative/backward logic confusion
+                if (moveFwd) velocity.z -= (isSprinting ? 600.0 : 350.0) * delta;
+                if (moveBwd) velocity.z += (isSprinting ? 600.0 : 350.0) * delta;
+                if (moveL) velocity.x -= (isSprinting ? 600.0 : 350.0) * delta;
+                if (moveR) velocity.x += (isSprinting ? 600.0 : 350.0) * delta;
+            }
+
+            // UI Coordinates Update
+            if (Math.floor(time) % 5 === 0) {
+                const cd = document.getElementById('coords-display');
+                if(cd) cd.innerText = `X:${playerObject.position.x.toFixed(1)} Y:${playerObject.position.y.toFixed(1)} Z:${playerObject.position.z.toFixed(1)}`;
+            }
+
+            // X and Z Split Collision Processing
+            const xMovementDist = Math.abs(velocity.x * delta);
+            const zMovementDist = Math.abs(velocity.z * delta);
+
+            if (xMovementDist > 0.001) {
+                if (isNoclip && ENGINE_MODE === 'EDIT') {
+                    playerObject.translateX(velocity.x * delta);
+                } else {
+                    const moveX = new THREE.Vector3(velocity.x * delta, 0, 0);
+                    const dirX = moveX.clone().normalize().applyEuler(new THREE.Euler(0, cameraYaw, 0));
+                    const hitX = getHorizontalCollision(dirX, xMovementDist);
+                    if (hitX) {
+                        if (hitX.userData.onTouch) hitX.userData.onTouch();
+                        velocity.x = 0;
+                    } else {
+                        playerObject.translateX(velocity.x * delta);
+                    }
+                }
+            }
+
+            if (zMovementDist > 0.001) {
+                if (isNoclip && ENGINE_MODE === 'EDIT') {
+                    playerObject.translateZ(velocity.z * delta);
+                } else {
+                    const moveZ = new THREE.Vector3(0, 0, velocity.z * delta);
+                    const dirZ = moveZ.clone().normalize().applyEuler(new THREE.Euler(0, cameraYaw, 0));
+                    const hitZ = getHorizontalCollision(dirZ, zMovementDist);
+                    if (hitZ) {
+                        if (hitZ.userData.onTouch) hitZ.userData.onTouch();
+                        if (hitZ.userData.type === 'Conveyor') {
+                            const pushDir = new THREE.Vector3(0, 0, -1).applyEuler(hitZ.rotation).normalize();
+                            playerObject.position.add(pushDir.multiplyScalar(60 * delta));
+                        }
+                        velocity.z = 0;
+                    } else {
+                        playerObject.translateZ(velocity.z * delta);
+                    }
+                }
+            }
+            
+            // Friction
+            velocity.x -= velocity.x * 10.0 * delta; 
+            velocity.z -= velocity.z * 10.0 * delta; 
+
+            // Vertical Processing
+            if (ENGINE_MODE === 'PLAY' || !isNoclip) {
+                
+                // Grapple Hook Physics
+                if (isGrappling) {
+                    grappleLine.geometry.setFromPoints([playerObject.position.clone().add(new THREE.Vector3(0, 4, 0)), grappleTarget]);
+                    const pullDir = grappleTarget.clone().sub(playerObject.position).normalize();
+                    velocity.x += pullDir.x * 800 * delta;
+                    velocity.z += pullDir.z * 800 * delta;
+                    velocity.y += pullDir.y * 800 * delta;
+                    
+                    if (playerObject.position.distanceTo(grappleTarget) < 10) {
+                        isGrappling = false;
+                        grappleLine.visible = false;
+                    }
+                }
+
+                if (isRagdolled) {
+                    ragdollTimer -= delta;
+                    if (ragdollTimer <= 0) respawnPlayer();
+                } else {
+                    velocity.y -= 400.0 * delta; 
+                    
+                    const fallDist = velocity.y < 0 ? Math.abs(velocity.y * delta) : 0;
+                    const groundHit = checkGroundCollision(fallDist);
+
+                    if (groundHit && velocity.y <= 0) {
+                        const hitBlock = groundHit.object;
+                        
+                        // Fall Damage
+                        if (velocity.y < -300 && !isGrappling) {
+                            updateHealth(velocity.y * 0.15); 
+                            playSound('hurt');
+                        }
+
+                        if (hitBlock.userData.onTouch) hitBlock.userData.onTouch();
+
+                        const blockType = hitBlock.userData.type;
+                        if (blockType === 'Lava') {
+                            updateHealth(-40 * delta); 
+                            document.getElementById('health-fill').style.background = 'red';
+                            setTimeout(() => document.getElementById('health-fill').style.background = '#22c55e', 200);
+                        } else if (blockType === 'Bouncer') {
+                            velocity.y = 400; canJump = false; isGrappling = false; grappleLine.visible = false;
+                            playSound('jump');
+                        } else if (blockType === 'Checkpoint') {
+                            const newSpawn = hitBlock.position.clone(); newSpawn.y += 9;
+                            if (!activeCheckpoint || activeCheckpoint.distanceTo(newSpawn) > 1) {
+                                activeCheckpoint = newSpawn;
+                                showNotification("Checkpoint Saved!");
+                                playSound('place');
+                            }
+                            velocity.y = Math.max(0, velocity.y); canJump = true; 
+                            playerObject.position.y = groundHit.point.y + 9;
+                        } else {
+                            velocity.y = Math.max(0, velocity.y); canJump = true;
+                            playerObject.position.y = groundHit.point.y + 9;
+                        }
+                    } else if (velocity.y > 0) {
+                        // Ceiling check
+                        playerRaycaster.set(playerObject.position, new THREE.Vector3(0, 1, 0));
+                        const collidables = objects.filter(o => o.userData.type !== 'Spawn' && o.userData.type !== 'Checkpoint');
+                        const ceilHits = playerRaycaster.intersectObjects(collidables, false);
+                        if (ceilHits.length > 0 && ceilHits[0].distance < (velocity.y * delta + 1.0)) {
+                            velocity.y = 0; // bonk
+                        } else {
+                            playerObject.position.y += velocity.y * delta;
+                        }
+                    } else {
+                        playerObject.position.y += velocity.y * delta;
+                    }
+                }
+                
+                objects.forEach(obj => { if (obj.userData.runScript) { try { obj.userData.runScript(obj, playerObject, time, delta, gameAPI); } catch (e) {} } });
+            } else {
+                // Flying in edit mode (Noclip)
+                if (moveUp) velocity.y += 400.0 * delta; 
+                if (moveDown) velocity.y -= 400.0 * delta;
+                velocity.y -= velocity.y * 10.0 * delta;
+                playerObject.position.y += (velocity.y * delta);
+            }
+
+            if (playerObject.position.y < -50) respawnPlayer();
+
+            prevTime = time;
+            renderer.render(scene, activeCamera);
+            cssRenderer.render(scene, activeCamera);
+        }
+
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight; camera.updateProjectionMatrix();
+            thirdPersonCamera.aspect = window.innerWidth / window.innerHeight; thirdPersonCamera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            cssRenderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        setTimeout(() => { if (localStorage.getItem('weblox_studio_save')) loadLevel(); }, 500);
+
+        animate();
+    </script>
+</body>
+</html>
