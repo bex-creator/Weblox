@@ -116,7 +116,7 @@
                 <button class="menu-btn" onclick="window.saveLevel()"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Save Local</button>
                 <div class="h-5 w-px bg-gray-600 mx-2 hidden md:block"></div>
                 <div id="coords-display" class="text-[11px] text-gray-400 font-mono tracking-widest hidden md:block w-36 text-center bg-[#1e1e1e] p-1.5 rounded border border-[#333]">X: 0.0 Y: 0.0 Z: 0.0</div>
-                <button id="btn-env" class="menu-btn" onclick="window.toggleAutoTime()">⏱️ Auto Time</button>
+                <button id="btn-env" class="menu-btn" onclick="window.toggleAutoTime()">⏱️ Time: Flowing</button>
             </div>
             
             <div class="flex items-center gap-3">
@@ -538,11 +538,11 @@
         // Day/Night Cycle States
         let autoTime = true;
         let dayTime = 0.0;
-        const daySpeed = 0.02; // Cycles per second (1.0 = full day)
+        const daySpeed = 0.001; // Slower cycle: 1.0 = full day (~16 minutes)
         
         window.toggleAutoTime = function() {
             autoTime = !autoTime;
-            document.getElementById('btn-env').innerText = autoTime ? "⏱️ Auto Time" : "⏸️ Paused";
+            document.getElementById('btn-env').innerText = autoTime ? "⏱️ Time: Flowing" : "⏸️ Time: Paused";
         };
 
         const skyGeo = new THREE.BoxGeometry(900, 900, 900);
