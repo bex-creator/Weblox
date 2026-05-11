@@ -116,7 +116,7 @@
                 <button class="menu-btn" onclick="window.saveLevel()"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"/></svg> Save Local</button>
                 <div class="h-5 w-px bg-gray-600 mx-2 hidden md:block"></div>
                 <div id="coords-display" class="text-[11px] text-gray-400 font-mono tracking-widest hidden md:block w-36 text-center bg-[#1e1e1e] p-1.5 rounded border border-[#333]">X: 0.0 Y: 0.0 Z: 0.0</div>
-                <button id="btn-env" class="menu-btn" onclick="window.cycleEnvironment()">🌞 Day</button>
+                <button id="btn-env" class="menu-btn" onclick="window.toggleAutoTime()">⏱️ Auto Time</button>
             </div>
             
             <div class="flex items-center gap-3">
@@ -314,6 +314,10 @@
         let currentType = BLOCK_TYPES.NORMAL;
         let currentColorHex = PALETTE[6];
 
+        window.playSound = function(type) {
+            // Placeholder for audio - implemented to prevent JS reference errors
+        };
+
         window.setEditorTool = (tool) => {
             EDITOR_TOOL = tool;
             ['build', 'move', 'scale', 'paint', 'clone', 'script'].forEach(t => {
@@ -478,7 +482,11 @@
         renderer.setClearColor(0x000000, 0); 
         renderer.setPixelRatio(window.devicePixelRatio);
         renderer.setSize(window.innerWidth, window.innerHeight);
+        
+        // Setup Soft Shadows
         renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        
         document.getElementById('canvas-container').appendChild(renderer.domElement);
 
         const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
@@ -507,36 +515,41 @@
         let isRightMouseDown = false;
         let mouseMovedDuringRightClick = false;
 
-        scene.add(new THREE.AmbientLight(0x606060));
+        const ambientLight = new THREE.AmbientLight(0x606060);
+        scene.add(ambientLight);
+        
+        // High Quality Directional Light (Sun)
         const dirLight = new THREE.DirectionalLight(0xffffff, 0.8);
         dirLight.position.set(100, 200, 50);
         dirLight.castShadow = true;
-        dirLight.shadow.camera.left = -200; dirLight.shadow.camera.right = 200;
-        dirLight.shadow.camera.top = 200; dirLight.shadow.camera.bottom = -200;
+        
+        // Enlarge shadow map bounds to cover entire building area cleanly
+        dirLight.shadow.mapSize.width = 2048;
+        dirLight.shadow.mapSize.height = 2048;
+        dirLight.shadow.camera.left = -300; 
+        dirLight.shadow.camera.right = 300;
+        dirLight.shadow.camera.top = 300; 
+        dirLight.shadow.camera.bottom = -300;
+        dirLight.shadow.camera.near = 0.5;
+        dirLight.shadow.camera.far = 1500;
+        dirLight.shadow.bias = -0.0005; // Help prevent shadow acne
         scene.add(dirLight);
 
-        const ENVIRONMENTS = [
-            { name: '🌞 Day', sky: 0x87CEEB, fog: 0x87CEEB, light: 0.8 },
-            { name: '🌅 Sunset', sky: 0xff7e67, fog: 0xff7e67, light: 0.5 },
-            { name: '🌙 Night', sky: 0x050510, fog: 0x050510, light: 0.1 },
-            { name: '🌌 Space', sky: 0x000000, fog: 0x000000, light: 0.3 }
-        ];
-        let currentEnvIdx = 0;
+        // Day/Night Cycle States
+        let autoTime = true;
+        let dayTime = 0.0;
+        const daySpeed = 0.02; // Cycles per second (1.0 = full day)
+        
+        window.toggleAutoTime = function() {
+            autoTime = !autoTime;
+            document.getElementById('btn-env').innerText = autoTime ? "⏱️ Auto Time" : "⏸️ Paused";
+        };
 
         const skyGeo = new THREE.BoxGeometry(900, 900, 900);
-        const skyMat = new THREE.MeshBasicMaterial({ color: ENVIRONMENTS[0].sky, side: THREE.BackSide, fog: false });
+        const skyMat = new THREE.MeshBasicMaterial({ color: 0x87CEEB, side: THREE.BackSide, fog: false });
         const skyBox = new THREE.Mesh(skyGeo, skyMat);
         scene.add(skyBox);
-        scene.fog = new THREE.FogExp2(ENVIRONMENTS[0].fog, 0.002);
-
-        window.cycleEnvironment = function() {
-            currentEnvIdx = (currentEnvIdx + 1) % ENVIRONMENTS.length;
-            const env = ENVIRONMENTS[currentEnvIdx];
-            skyBox.material.color.setHex(env.sky);
-            scene.fog.color.setHex(env.fog);
-            dirLight.intensity = env.light;
-            document.getElementById('btn-env').innerText = env.name;
-        };
+        scene.fog = new THREE.FogExp2(0x87CEEB, 0.002);
 
         let baseplate;
         function createBaseplate() {
@@ -585,17 +598,17 @@
             const matLegs = new THREE.MeshLambertMaterial({color: colors.legs});
 
             const head = new THREE.Mesh(new THREE.BoxGeometry(2, 2, 2), matHead);
-            head.position.y = 9; head.castShadow = true; group.add(head);
+            head.position.y = 9; head.castShadow = true; head.receiveShadow = true; group.add(head);
 
             const torso = new THREE.Mesh(new THREE.BoxGeometry(2.5, 3, 1), matTorso);
-            torso.position.y = 6; torso.castShadow = true; group.add(torso);
+            torso.position.y = 6; torso.castShadow = true; torso.receiveShadow = true; group.add(torso);
 
             function createLimb(mat, pivotX, pivotY, pivotZ, width, length, depth) {
                 const pivot = new THREE.Group();
                 pivot.position.set(pivotX, pivotY, pivotZ);
                 const mesh = new THREE.Mesh(new THREE.BoxGeometry(width, length, depth), mat);
                 mesh.position.y = -length / 2;
-                mesh.castShadow = true;
+                mesh.castShadow = true; mesh.receiveShadow = true;
                 pivot.add(mesh);
                 return { pivot, mesh };
             }
@@ -944,7 +957,8 @@
             }
 
             if (e.button === 0) { 
-                if (isTransformDragging) return;
+                // Fix Resizing/Move Logic: Prevent Raycaster detaching if hovering an axis of the transform gizmo.
+                if (isTransformDragging || (transformControl && transformControl.axis !== null)) return;
 
                 if (activeCamera === camera && !isPointerLocked && !isInteracting) {
                     lockPointer(); 
@@ -1487,11 +1501,47 @@
             }
             return closestHit;
         }
+        
+        // Define Day Cycle Colors
+        const cycleStops = [
+            { t: 0.0, sky: new THREE.Color(0x87CEEB), amb: new THREE.Color(0x606060), int: 0.8 }, // Noon
+            { t: 0.25, sky: new THREE.Color(0xff7e67), amb: new THREE.Color(0x403030), int: 0.5 }, // Sunset
+            { t: 0.5, sky: new THREE.Color(0x050510), amb: new THREE.Color(0x101020), int: 0.0 }, // Midnight
+            { t: 0.75, sky: new THREE.Color(0xffb07c), amb: new THREE.Color(0x403030), int: 0.4 }, // Sunrise
+            { t: 1.0, sky: new THREE.Color(0x87CEEB), amb: new THREE.Color(0x606060), int: 0.8 }  // Noon
+        ];
 
         function animate() {
             requestAnimationFrame(animate);
             const time = performance.now();
             const delta = Math.min((time - prevTime) / 1000, 0.1);
+            
+            // Environment / Time of Day updates
+            if (autoTime) {
+                dayTime = (dayTime + delta * daySpeed) % 1.0;
+                
+                let startStop, endStop;
+                for (let i = 0; i < cycleStops.length - 1; i++) {
+                    if (dayTime >= cycleStops[i].t && dayTime <= cycleStops[i+1].t) {
+                        startStop = cycleStops[i];
+                        endStop = cycleStops[i+1];
+                        break;
+                    }
+                }
+                
+                if (startStop && endStop) {
+                    const localT = (dayTime - startStop.t) / (endStop.t - startStop.t);
+                    
+                    skyBox.material.color.lerpColors(startStop.sky, endStop.sky, localT);
+                    scene.fog.color.lerpColors(startStop.sky, endStop.sky, localT);
+                    ambientLight.color.lerpColors(startStop.amb, endStop.amb, localT);
+                    
+                    dirLight.intensity = THREE.MathUtils.lerp(startStop.int, endStop.int, localT);
+                    
+                    const angle = -dayTime * Math.PI * 2 + Math.PI / 2;
+                    dirLight.position.set(Math.cos(angle) * 500, Math.sin(angle) * 500, Math.sin(angle) * 200);
+                }
+            }
 
             for (let i = activeBombs.length - 1; i >= 0; i--) {
                 const b = activeBombs[i];
