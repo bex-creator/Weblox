@@ -64,6 +64,7 @@
         }
         .type-slot:hover { background: #3e3e42; color: white; }
         .type-slot.selected { border-color: #0e639c; background: #094771; color: white; }
+        .type-slot.custom-model { border-color: #8E24AA; color: #e1bee7; }
 
         .color-slot {
             width: 24px; height: 24px; border: 2px solid #333; border-radius: 4px; cursor: pointer;
@@ -79,7 +80,7 @@
         }
 
         #notification {
-            position: absolute; bottom: 120px; left: 50%; transform: translateX(-50%) translateY(20px);
+            position: absolute; bottom: 140px; left: 50%; transform: translateX(-50%) translateY(20px);
             background: #0e639c; color: white; padding: 10px 20px; border-radius: 6px;
             font-size: 14px; font-weight: 600; opacity: 0; transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1); pointer-events: none;
             z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.5);
@@ -121,9 +122,16 @@
             
             <div class="flex items-center gap-3">
                 <span id="mode-indicator" class="text-xs bg-blue-900/50 border border-blue-700 text-blue-300 px-3 py-1 rounded font-bold mr-4">EDIT MODE</span>
+                
+                <!-- Modeler Toggle -->
+                <button id="btn-modeler" class="menu-btn" style="background:#6b21a8; color:white; border:1px solid #9333ea;" onclick="window.enterModeler()">🛠️ Model Maker</button>
+                <button id="btn-save-model" class="menu-btn hidden" style="background:#16a34a; color:white; border:1px solid #22c55e;" onclick="window.saveAndExitModeler()">💾 Save Model & Exit</button>
+                
+                <div class="h-5 w-px bg-gray-600 mx-1"></div>
+
                 <button id="btn-play" class="menu-btn play-btn" onclick="window.toggleEngineMode()"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> PLAYTEST</button>
                 <button id="btn-stop" class="menu-btn stop-btn" onclick="window.toggleEngineMode()"><svg class="w-4 h-4" viewBox="0 0 24 24" fill="currentColor"><path d="M6 6h12v12H6z"/></svg> STOP</button>
-                <div class="h-5 w-px bg-gray-600 mx-2"></div>
+                <div class="h-5 w-px bg-gray-600 mx-1"></div>
                 <button class="menu-btn primary" onclick="window.showPublishModal()"><svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg> Publish to Weblox</button>
             </div>
         </div>
@@ -151,10 +159,11 @@
             <div id="bottom-toolbar">
                 <div class="flex gap-8 items-center w-full justify-center">
                     <div class="flex flex-col gap-1 items-center">
-                        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Active Tool</span>
+                        <span class="text-[10px] text-gray-500 font-bold uppercase tracking-widest">Studio Tools</span>
                         <div class="flex bg-[#1e1e1e] p-1 rounded border border-[#333]">
                             <div id="tool-build" class="type-slot selected !border-none !m-0" onclick="window.setEditorTool('BUILD')">🔨 Build</div>
                             <div id="tool-move" class="type-slot !border-none !m-0" onclick="window.setEditorTool('MOVE')">↔️ Move</div>
+                            <div id="tool-rotate" class="type-slot !border-none !m-0" onclick="window.setEditorTool('ROTATE')">🔄 Rotate</div>
                             <div id="tool-scale" class="type-slot !border-none !m-0" onclick="window.setEditorTool('SCALE')">📏 Resize</div>
                             <div id="tool-paint" class="type-slot !border-none !m-0" onclick="window.setEditorTool('PAINT')">🎨 Paint</div>
                             <div id="tool-clone" class="type-slot !border-none !m-0" onclick="window.setEditorTool('CLONE')">🖇️ Clone</div>
@@ -189,7 +198,7 @@
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">L-Click</b> Use Tool / Interact</div>
                 <div class="col-span-2 text-center text-gray-400 font-bold border-b border-[#333] pb-2 mb-1 mt-2 text-xs uppercase tracking-widest">Advanced Tools</div>
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">R</b> Rotate Block</div>
-                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">+ / -</b> Scale Block</div>
+                <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">+ / -</b> Scale Block / Gizmo</div>
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">C</b> Noclip (Edit)</div>
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">F</b> Flashlight</div>
                 <div><b class="text-white bg-[#333] px-1.5 py-0.5 rounded">V</b> Toggle 1st/3rd Person</div>
@@ -218,7 +227,7 @@
             <div class="bg-[#252526] border-b border-[#333] p-4 flex justify-between items-center">
                 <div>
                     <h2 id="script-modal-title" class="text-lg font-black text-white flex items-center gap-2">📜 Block Script Editor</h2>
-                    <p id="script-modal-desc" class="text-xs text-gray-400 mt-1 font-medium">Write JavaScript to run during Play Mode. Variables: <code>block</code>, <code>player</code>, <code>game</code>, <code>time</code>, <code>delta</code>.<br>For Tools, define <code>block.userData.onUse = () => { ... }</code> for custom actions!</p>
+                    <p id="script-modal-desc" class="text-xs text-gray-400 mt-1 font-medium">Write JavaScript to run during Play Mode. Variables: <code>block</code>, <code>player</code>, <code>game</code>, <code>time</code>, <code>delta</code>.<br>Example: <code>block.rotation.y += delta * 2;</code> for a spinning part!</p>
                 </div>
                 <button class="text-gray-400 hover:text-white" onclick="window.closeScriptModal()"><svg class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/></svg></button>
             </div>
@@ -281,8 +290,12 @@
         const UNIT_SIZE = 5;
         let ENGINE_MODE = 'EDIT'; 
         let EDITOR_TOOL = 'BUILD'; 
+        
         let objects = []; 
+        let modelerObjects = []; 
         let spawnPoints = [];
+        let customModels = []; // Holds saved custom grouped models
+        
         let currentPlaceRotation = 0;
         let currentPlaceScale = 1;
         let isNoclip = true;
@@ -292,11 +305,12 @@
             GLASS: { id: 'Glass', name: 'Glass', colorOverride: null, shape: 'box', matParams: { transparent: true, opacity: 0.4 } },
             NEON: { id: 'Neon', name: 'Neon', colorOverride: null, shape: 'box', isNeon: true },
             LAMP: { id: 'Lamp', name: 'Lamp', colorOverride: null, shape: 'box', isLamp: true },
+            SEAT: { id: 'Seat', name: 'Seat', colorOverride: 0x1976D2, shape: 'box', isSeat: true },
+            MOTOR: { id: 'Motor', name: 'Motor', colorOverride: 0xFF9800, shape: 'cylinder', defaultScript: 'block.rotation.y += delta * 2;' },
+            HINGE: { id: 'Hinge', name: 'Hinge', colorOverride: 0x795548, shape: 'cylinder', defaultScript: 'block.rotation.z = Math.sin(time / 500) * 1.5;' },
             RAMP: { id: 'Ramp', name: 'Wedge', colorOverride: null, shape: 'ramp' },
             CYLINDER: { id: 'Cylinder', name: 'Cylinder', colorOverride: null, shape: 'cylinder' },
             SPHERE: { id: 'Sphere', name: 'Sphere', colorOverride: null, shape: 'sphere' },
-            CONE: { id: 'Cone', name: 'Spike', colorOverride: null, shape: 'cone' },
-            TORUS: { id: 'Torus', name: 'Ring', colorOverride: null, shape: 'torus' },
             TOOL: { id: 'Tool', name: 'Tool Part', colorOverride: 0xFF00FF, shape: 'box', isTool: true },
             CONVEYOR: { id: 'Conveyor', name: 'Conveyor', colorOverride: 0x444444, shape: 'box' },
             CHECKPOINT: { id: 'Checkpoint', name: 'Checkpoint', colorOverride: 0x00FF00, shape: 'box', isNeon: true },
@@ -320,7 +334,7 @@
 
         window.setEditorTool = (tool) => {
             EDITOR_TOOL = tool;
-            ['build', 'move', 'scale', 'paint', 'clone', 'script'].forEach(t => {
+            ['build', 'move', 'rotate', 'scale', 'paint', 'clone', 'script'].forEach(t => {
                 const el = document.getElementById('tool-' + t);
                 if (el) {
                     if (tool === t.toUpperCase()) el.classList.add('selected', '!bg-[#094771]');
@@ -331,6 +345,7 @@
             if (transformControl) {
                 if (tool === 'SCALE') transformControl.setMode('scale');
                 else if (tool === 'MOVE') transformControl.setMode('translate');
+                else if (tool === 'ROTATE') transformControl.setMode('rotate');
                 else transformControl.detach();
             }
         };
@@ -339,6 +354,8 @@
         function initUI() {
             const typeBar = document.getElementById('type-bar');
             typeBar.innerHTML = '';
+            
+            // Standard Blocks
             Object.values(BLOCK_TYPES).forEach(type => {
                 const btn = document.createElement('div');
                 btn.className = `type-slot ${type.id === currentType.id ? 'selected !bg-[#094771]' : ''}`;
@@ -347,6 +364,19 @@
                     currentType = type;
                     document.querySelectorAll('.type-slot').forEach(el => el.classList.remove('selected', '!bg-[#094771]'));
                     btn.classList.add('selected', '!bg-[#094771]');
+                };
+                typeBar.appendChild(btn);
+            });
+            
+            // Custom Models created via Model Maker
+            customModels.forEach(type => {
+                const btn = document.createElement('div');
+                btn.className = `type-slot custom-model ${type.id === currentType.id ? 'selected !bg-[#8E24AA]' : ''}`;
+                btn.innerText = "📦 " + type.name;
+                btn.onclick = () => {
+                    currentType = type;
+                    document.querySelectorAll('.type-slot').forEach(el => el.classList.remove('selected', '!bg-[#094771]', '!bg-[#8E24AA]'));
+                    btn.classList.add('selected', '!bg-[#8E24AA]');
                 };
                 typeBar.appendChild(btn);
             });
@@ -494,6 +524,7 @@
         let activeCamera = camera;
 
         const transformControl = new TransformControls(activeCamera, cssRenderer.domElement);
+        transformControl.size = 1.25; // Make gizmo slightly larger to click easily
         transformControl.addEventListener('dragging-changed', function (event) {
             isTransformDragging = event.value;
         });
@@ -552,6 +583,8 @@
         scene.fog = new THREE.FogExp2(0x87CEEB, 0.002);
 
         let baseplate;
+        let modelerBaseplate;
+
         function createBaseplate() {
             const geo = new THREE.PlaneGeometry(1000, 1000);
             geo.rotateX(-Math.PI / 2);
@@ -564,7 +597,20 @@
             const gridHelper = new THREE.GridHelper(1000, 200, 0x000000, 0x000000);
             gridHelper.material.opacity = 0.15;
             gridHelper.material.transparent = true;
-            scene.add(gridHelper);
+            baseplate.add(gridHelper);
+            
+            // Dedicated platform used only in the Modeler
+            modelerBaseplate = new THREE.Mesh(new THREE.PlaneGeometry(100, 100), new THREE.MeshLambertMaterial({ color: 0x6b21a8 }));
+            modelerBaseplate.rotation.x = -Math.PI / 2;
+            modelerBaseplate.receiveShadow = true;
+            modelerBaseplate.visible = false;
+            scene.add(modelerBaseplate);
+            
+            const mGridHelper = new THREE.GridHelper(100, 20, 0x000000, 0x000000);
+            mGridHelper.material.opacity = 0.3;
+            mGridHelper.material.transparent = true;
+            mGridHelper.rotation.x = Math.PI / 2;
+            modelerBaseplate.add(mGridHelper);
         }
         createBaseplate();
 
@@ -643,19 +689,41 @@
         myAvatarMesh.userData.head.visible = false; 
         scene.add(myAvatarMesh);
 
-        function destroyBlock(obj) {
+        function _destroySingle(obj) {
             if(obj.userData.cssDiv && obj.userData.cssDiv.parentNode) {
                 obj.userData.cssDiv.parentNode.removeChild(obj.userData.cssDiv);
             }
             if(obj.userData.light) scene.remove(obj.userData.light);
             if(transformControl.object === obj) transformControl.detach();
 
-            scene.remove(obj);
+            // Handle children (welded parts in Modeler)
+            const childrenToReparent = obj.children.filter(c => c.userData && c.userData.type);
+            childrenToReparent.forEach(c => scene.attach(c)); 
+
+            if (obj.parent) obj.parent.remove(obj);
+            else scene.remove(obj);
+            
             const idx = objects.indexOf(obj);
             if(idx > -1) objects.splice(idx, 1);
+            
+            const midx = modelerObjects.indexOf(obj);
+            if(midx > -1) modelerObjects.splice(midx, 1);
+            
             if(obj.userData.type === 'Spawn') {
                 const spIdx = spawnPoints.indexOf(obj);
                 if(spIdx > -1) spawnPoints.splice(spIdx, 1);
+            }
+        }
+
+        function destroyBlock(obj) {
+            if (obj.userData.parentGroup) {
+                // Destroy entire custom model
+                const grp = obj.userData.parentGroup;
+                const toRemove = objects.filter(o => o.userData.parentGroup === grp);
+                toRemove.forEach(c => _destroySingle(c));
+                scene.remove(grp);
+            } else {
+                _destroySingle(obj);
             }
         }
 
@@ -686,7 +754,7 @@
                 mesh.scale.set(sx * 0.5, sy * 0.5, sz * 0.5);
             }
 
-            mesh.userData = { type: typeId, colorHex: colorHex, script: scriptCode };
+            mesh.userData = { type: typeId, colorHex: colorHex, script: scriptCode || typeDef.defaultScript || "" };
 
             if (typeDef.isLamp) {
                 const light = new THREE.PointLight(finalColor, 1.5, 60 * Math.max(sx, sy, sz));
@@ -707,7 +775,7 @@
                 iframe.style.backgroundColor = '#000';
                 iframe.style.boxSizing = 'border-box';
                 iframe.setAttribute('sandbox', 'allow-scripts allow-same-origin allow-forms allow-popups');
-                iframe.srcdoc = scriptCode || DEFAULT_TV_HTML;
+                iframe.srcdoc = mesh.userData.script || DEFAULT_TV_HTML;
                 
                 const cssObject = new CSS3DObject(iframe);
                 cssObject.scale.set(UNIT_SIZE/res, UNIT_SIZE/res, UNIT_SIZE/res);
@@ -731,9 +799,128 @@
             }
 
             scene.add(mesh);
-            objects.push(mesh);
+            
+            if (ENGINE_MODE === 'MODELER') {
+                modelerObjects.push(mesh);
+            } else {
+                objects.push(mesh);
+            }
+
             if(typeId === 'Spawn') spawnPoints.push(mesh);
             return mesh;
+        }
+
+        function placeCustomModel(pos, rotY, scale, typeDef) {
+            const group = new THREE.Group();
+            group.position.copy(pos);
+            group.rotation.y = rotY;
+            group.scale.setScalar(scale);
+            group.userData = { type: 'CustomGroup', customId: typeDef.id };
+            
+            const mapIdToMesh = {};
+            
+            typeDef.data.forEach(item => {
+                // Must ensure these go into `objects` array so Raycaster hits them in world
+                const mesh = instantiateBlock(new THREE.Vector3(item.px, item.py, item.pz), item.type, item.color, item.script, item.sx, item.sy, item.sz);
+                mesh.rotation.set(item.rx, item.ry, item.rz);
+                mesh.userData.parentGroup = group;
+                mesh.userData.savedParentId = item.parentUuid;
+                mapIdToMesh[item.uuid] = mesh;
+                group.add(mesh);
+            });
+            
+            // Restore hierarchy
+            Object.values(mapIdToMesh).forEach(mesh => {
+                if (mesh.userData.savedParentId && mapIdToMesh[mesh.userData.savedParentId]) {
+                    mapIdToMesh[mesh.userData.savedParentId].add(mesh);
+                }
+                delete mesh.userData.savedParentId;
+            });
+            
+            scene.add(group);
+            playSound('place');
+        }
+
+        // --- MODELER (Blender-like Mode) ---
+        let savedPlayerPos = new THREE.Vector3();
+        let savedPlayerRot = 0;
+        let savedCameraPitch = 0;
+        
+        window.enterModeler = function() {
+            if (ENGINE_MODE !== 'EDIT') return;
+            ENGINE_MODE = 'MODELER';
+            document.getElementById('mode-indicator').innerText = 'MODELER MODE';
+            document.getElementById('mode-indicator').className = 'text-xs bg-purple-900/50 border border-purple-700 text-purple-300 px-3 py-1 rounded font-bold mr-4';
+            
+            document.getElementById('btn-modeler').classList.add('hidden');
+            document.getElementById('btn-save-model').classList.remove('hidden');
+            
+            // Hide main world
+            objects.forEach(o => o.visible = false);
+            baseplate.visible = false;
+            modelerBaseplate.visible = true;
+            
+            // Save state
+            savedPlayerPos.copy(playerObject.position);
+            savedPlayerRot = cameraYaw;
+            savedCameraPitch = cameraPitch;
+            
+            // Teleport to modeler center
+            playerObject.position.set(0, 9, 30);
+            cameraYaw = 0;
+            cameraPitch = -0.2;
+            
+            transformControl.detach();
+            showNotification("Entered Model Maker! Parent welding is enabled here.");
+        };
+
+        window.saveAndExitModeler = function() {
+            if (modelerObjects.length === 0) {
+                showNotification("Model is empty! Exiting without saving.");
+                exitModelerState();
+                return;
+            }
+            
+            const modelData = [];
+            modelerObjects.forEach(o => extractBlockData(o, modelData));
+            
+            const newCustomType = {
+                id: 'CustomModel_' + Date.now(),
+                name: 'Custom Model ' + (customModels.length + 1),
+                isCustom: true,
+                data: modelData
+            };
+            customModels.push(newCustomType);
+            
+            // Clear modeler objects
+            modelerObjects.forEach(o => {
+                if (o.parent) o.parent.remove(o);
+                scene.remove(o);
+            });
+            modelerObjects = [];
+            
+            exitModelerState();
+            initUI(); 
+            showNotification("Custom Model Saved to Toolbar!");
+        };
+        
+        function exitModelerState() {
+            ENGINE_MODE = 'EDIT';
+            document.getElementById('mode-indicator').innerText = 'EDIT MODE';
+            document.getElementById('mode-indicator').className = 'text-xs bg-blue-900/50 border border-blue-700 text-blue-300 px-3 py-1 rounded font-bold mr-4';
+            
+            document.getElementById('btn-modeler').classList.remove('hidden');
+            document.getElementById('btn-save-model').classList.add('hidden');
+            
+            objects.forEach(o => o.visible = true);
+            baseplate.visible = true;
+            modelerBaseplate.visible = false;
+            
+            playerObject.position.copy(savedPlayerPos);
+            cameraYaw = savedPlayerRot;
+            cameraPitch = savedCameraPitch;
+            
+            transformControl.detach();
         }
 
         // --- SCRIPT / HTML EDITOR MODAL ---
@@ -748,8 +935,8 @@
                 document.getElementById('block-script-input').placeholder = "<style>h1{color:red;}</style>\n<h1>Weblox</h1>\n<script>alert('Running!');</sc"+"ript>";
             } else {
                 document.getElementById('script-modal-title').innerHTML = "📜 Block Script Editor";
-                document.getElementById('script-modal-desc').innerHTML = "Write JavaScript to control this block in Play Mode. Variables: <code>block</code>, <code>player</code>, <code>game</code>, <code>time</code>, <code>delta</code>.<br>For Tools, define <code>block.userData.onUse = () => { ... }</code> for custom actions!";
-                document.getElementById('block-script-input').placeholder = "// Example: Hover and interact\nif (!block.userData.init) {\n  block.userData.init = true;\n  block.userData.onClick = () => game.explode(block.position);\n  block.userData.onTouch = () => game.bounce(200);\n}\nblock.position.y += Math.sin(time / 200) * 0.1;";
+                document.getElementById('script-modal-desc').innerHTML = "Write JavaScript to control this block in Play Mode. Variables: <code>block</code>, <code>player</code>, <code>game</code>, <code>time</code>, <code>delta</code>.<br>Example: <code>block.rotation.y += delta * 2;</code> for a spinning part!";
+                document.getElementById('block-script-input').placeholder = "// Example: Hover and interact\nif (!block.userData.init) {\n  block.userData.init = true;\n  block.userData.onClick = () => game.explode(block.position);\n  block.userData.onTouch = () => game.bounce(200);\n}\nblock.rotation.y += delta * 2;";
             }
 
             document.getElementById('script-modal').classList.replace('hidden', 'flex');
@@ -927,6 +1114,8 @@
         let canJump = false;
         let isSprinting = false;
         let isGrappling = false;
+        let isSitting = false;
+        let sitTarget = null;
         let grappleTarget = new THREE.Vector3();
         let playerHealth = 100;
         let activeCheckpoint = null;
@@ -957,7 +1146,7 @@
             }
 
             if (e.button === 0) { 
-                // Fix Resizing/Move Logic: Prevent Raycaster detaching if hovering an axis of the transform gizmo.
+                // Prevent canvas clicks from overriding the TransformGizmo interaction!
                 if (isTransformDragging || (transformControl && transformControl.axis !== null)) return;
 
                 if (activeCamera === camera && !isPointerLocked && !isInteracting) {
@@ -973,7 +1162,8 @@
                 }
 
                 raycaster.setFromCamera(mouse, activeCamera);
-                const intersects = raycaster.intersectObjects(objects, false);
+                const activeObjects = ENGINE_MODE === 'MODELER' ? [modelerBaseplate, ...modelerObjects] : objects;
+                const intersects = raycaster.intersectObjects(activeObjects, false);
 
                 if (ENGINE_MODE === 'PLAY') {
                     if (!isRagdolled) {
@@ -1005,15 +1195,15 @@
                     return;
                 }
 
-                // Edit Mode Placement/Scripting/Painting/Cloning/Transforming
+                // Edit/Modeler Mode Placement/Scripting/Painting/Cloning/Transforming
                 if (intersects.length > 0) {
                     const intersect = intersects[0];
                     if (intersect.distance > 80) return;
 
                     if (EDITOR_TOOL === 'SCRIPT') {
-                        if (intersect.object !== baseplate && intersect.object.userData.type !== 'Spawn') window.openScriptModal(intersect.object);
+                        if (intersect.object !== baseplate && intersect.object !== modelerBaseplate && intersect.object.userData.type !== 'Spawn') window.openScriptModal(intersect.object);
                     } else if (EDITOR_TOOL === 'PAINT') {
-                        if (intersect.object !== baseplate) {
+                        if (intersect.object !== baseplate && intersect.object !== modelerBaseplate) {
                             const obj = intersect.object;
                             const tDef = Object.values(BLOCK_TYPES).find(t => t.id === obj.userData.type);
                             if (!tDef.colorOverride) {
@@ -1028,8 +1218,12 @@
                             }
                         }
                     } else if (EDITOR_TOOL === 'CLONE') {
-                        if (intersect.object !== baseplate) {
+                        if (intersect.object !== baseplate && intersect.object !== modelerBaseplate) {
                             const obj = intersect.object;
+                            if (obj.userData.parentGroup) {
+                                showNotification("Cannot clone individual pieces of Custom Models. Use the Tool-bar!");
+                                return;
+                            }
                             currentType = Object.values(BLOCK_TYPES).find(t => t.id === obj.userData.type);
                             currentColorHex = obj.userData.colorHex;
                             currentPlaceScale = obj.scale.x; 
@@ -1039,20 +1233,33 @@
                             playSound('place');
                             showNotification("Cloned Block Properties!");
                         }
-                    } else if (EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'SCALE') {
-                        if (intersect.object !== baseplate) {
-                            transformControl.attach(intersect.object);
+                    } else if (EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'SCALE' || EDITOR_TOOL === 'ROTATE') {
+                        if (intersect.object !== baseplate && intersect.object !== modelerBaseplate) {
+                            const targetObj = intersect.object.userData.parentGroup ? intersect.object.userData.parentGroup : intersect.object;
+                            transformControl.attach(targetObj);
                         } else {
                             transformControl.detach();
                         }
                     } else if (EDITOR_TOOL === 'BUILD') {
                         if (ghostBlock.visible) {
-                            const mesh = instantiateBlock(ghostBlock.position, currentType.id, currentColorHex, "", currentPlaceScale, currentPlaceScale, currentPlaceScale);
-                            mesh.rotation.copy(ghostBlock.rotation);
-                            playSound('place');
+                            if (currentType.isCustom) {
+                                placeCustomModel(ghostBlock.position, currentPlaceRotation, currentPlaceScale, currentType);
+                            } else {
+                                const mesh = instantiateBlock(new THREE.Vector3(), currentType.id, currentColorHex, "", currentPlaceScale, currentPlaceScale, currentPlaceScale);
+                                mesh.position.copy(ghostBlock.position);
+                                mesh.rotation.copy(ghostBlock.rotation);
+                                
+                                // Welding Support: ONLY in Modeler mode
+                                if (ENGINE_MODE === 'MODELER' && intersect.object !== modelerBaseplate) {
+                                    intersect.object.attach(mesh); 
+                                    showNotification("Welded to Object!");
+                                }
+
+                                playSound('place');
+                            }
                         }
                     }
-                } else if (EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'SCALE') {
+                } else if (EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'SCALE' || EDITOR_TOOL === 'ROTATE') {
                     transformControl.detach();
                 }
             }
@@ -1065,11 +1272,12 @@
                     unlockPointer(); 
                 }
                 
-                if (!mouseMovedDuringRightClick && ENGINE_MODE === 'EDIT' && (EDITOR_TOOL === 'BUILD' || EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'SCALE' || EDITOR_TOOL === 'PAINT' || EDITOR_TOOL === 'CLONE')) {
+                if (!mouseMovedDuringRightClick && (ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') && (EDITOR_TOOL === 'BUILD' || EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'SCALE' || EDITOR_TOOL === 'PAINT' || EDITOR_TOOL === 'CLONE' || EDITOR_TOOL === 'ROTATE')) {
                     if (activeCamera === camera) { mouse.x = 0; mouse.y = 0; }
                     raycaster.setFromCamera(mouse, activeCamera);
-                    const intersects = raycaster.intersectObjects(objects, false);
-                    if (intersects.length > 0 && intersects[0].object !== baseplate && intersects[0].distance <= 80) {
+                    const activeObjects = ENGINE_MODE === 'MODELER' ? [modelerBaseplate, ...modelerObjects] : objects;
+                    const intersects = raycaster.intersectObjects(activeObjects, false);
+                    if (intersects.length > 0 && intersects[0].object !== baseplate && intersects[0].object !== modelerBaseplate && intersects[0].distance <= 80) {
                         destroyBlock(intersects[0].object);
                         playSound('hurt');
                     }
@@ -1123,7 +1331,7 @@
                     }
                     break;
                 case 'KeyE': 
-                    if (ENGINE_MODE === 'PLAY' && !isRagdolled && !isGrappling) {
+                    if (ENGINE_MODE === 'PLAY' && !isRagdolled && !isGrappling && !isSitting) {
                         if (activeCamera === camera) { mouse.x = 0; mouse.y = 0; }
                         raycaster.setFromCamera(mouse, activeCamera);
                         const hits = raycaster.intersectObjects(objects, false);
@@ -1137,24 +1345,43 @@
                     }
                     break;
                 case 'KeyR':
-                    if (ENGINE_MODE === 'EDIT') currentPlaceRotation -= Math.PI / 2;
+                    if (ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') {
+                        if (EDITOR_TOOL === 'ROTATE' && transformControl.object) {
+                            // Rotate gizmo object
+                            transformControl.object.rotation.y += Math.PI / 2;
+                        } else {
+                            // Rotate ghost block
+                            currentPlaceRotation -= Math.PI / 2;
+                        }
+                    }
                     break;
                 case 'Equal':
                 case 'NumpadAdd':
-                    if (ENGINE_MODE === 'EDIT' && EDITOR_TOOL === 'BUILD') {
-                        currentPlaceScale = Math.min(10, currentPlaceScale + 1);
-                        showNotification(`Scale: ${currentPlaceScale}x`);
+                    if (ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') {
+                        if (EDITOR_TOOL === 'BUILD') {
+                            currentPlaceScale = Math.min(10, currentPlaceScale + 1);
+                            showNotification(`Build Scale: ${currentPlaceScale}x`);
+                        } else if (transformControl.object && (EDITOR_TOOL === 'SCALE' || EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'ROTATE')) {
+                            transformControl.object.scale.addScalar(0.5);
+                            showNotification("Gizmo Scaled Up (+)");
+                        }
                     }
                     break;
                 case 'Minus':
                 case 'NumpadSubtract':
-                    if (ENGINE_MODE === 'EDIT' && EDITOR_TOOL === 'BUILD') {
-                        currentPlaceScale = Math.max(1, currentPlaceScale - 1);
-                        showNotification(`Scale: ${currentPlaceScale}x`);
+                    if (ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') {
+                        if (EDITOR_TOOL === 'BUILD') {
+                            currentPlaceScale = Math.max(1, currentPlaceScale - 1);
+                            showNotification(`Build Scale: ${currentPlaceScale}x`);
+                        } else if (transformControl.object && (EDITOR_TOOL === 'SCALE' || EDITOR_TOOL === 'MOVE' || EDITOR_TOOL === 'ROTATE')) {
+                            transformControl.object.scale.subScalar(0.5);
+                            transformControl.object.scale.max(new THREE.Vector3(0.1, 0.1, 0.1));
+                            showNotification("Gizmo Scaled Down (-)");
+                        }
                     }
                     break;
                 case 'KeyC':
-                    if (ENGINE_MODE === 'EDIT') {
+                    if (ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') {
                         isNoclip = !isNoclip;
                         showNotification(isNoclip ? "Noclip Enabled" : "Collisions Enabled");
                         playSound('place');
@@ -1167,10 +1394,18 @@
                     showNotification(isFlashlightOn ? "Flashlight On" : "Flashlight Off");
                     break;
                 case 'Space': 
-                    if(ENGINE_MODE === 'PLAY' && canJump && !isRagdolled) { velocity.y = 150; canJump = false; playSound('jump'); }
-                    if(ENGINE_MODE === 'EDIT') moveUp = true; break;
+                    if(ENGINE_MODE === 'PLAY' && !isRagdolled) { 
+                        if (isSitting) {
+                            isSitting = false;
+                            velocity.y = 150;
+                            playSound('jump');
+                        } else if (canJump) {
+                            velocity.y = 150; canJump = false; playSound('jump'); 
+                        }
+                    }
+                    if(ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') moveUp = true; break;
                 case 'ShiftLeft': 
-                    if(ENGINE_MODE === 'EDIT') moveDown = true; 
+                    if(ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') moveDown = true; 
                     else if (ENGINE_MODE === 'PLAY') isSprinting = true;
                     break;
                 case 'KeyV': 
@@ -1199,7 +1434,7 @@
                 case 'KeyD': moveR = false; break;
                 case 'Space': moveUp = false; break;
                 case 'ShiftLeft': 
-                    if(ENGINE_MODE === 'EDIT') moveDown = false; 
+                    if(ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') moveDown = false; 
                     else if (ENGINE_MODE === 'PLAY') isSprinting = false;
                     break;
             }
@@ -1235,8 +1470,15 @@
             for (let i = objects.length - 1; i >= 0; i--) {
                 const obj = objects[i];
                 if (obj === baseplate || obj.userData.type === 'Spawn' || obj.userData.type === 'Tool') continue; 
-                const scaleRadiusOffset = Math.max(obj.scale.x, obj.scale.y, obj.scale.z) * 2.5;
-                if (obj.position.distanceTo(pos) < 25 + scaleRadiusOffset) { destroyBlock(obj); }
+                
+                // Explode parent groups as whole units
+                const targetObj = obj.userData.parentGroup ? obj.userData.parentGroup : obj;
+                
+                const scaleRadiusOffset = Math.max(targetObj.scale.x, targetObj.scale.y, targetObj.scale.z) * 2.5;
+                const worldObjPos = new THREE.Vector3();
+                targetObj.getWorldPosition(worldObjPos);
+                
+                if (worldObjPos.distanceTo(pos) < 25 + scaleRadiusOffset) { destroyBlock(targetObj); }
             }
         }
 
@@ -1254,6 +1496,7 @@
             isRagdolled = true; ragdollTimer = 4.0; 
             velocity.set(0,0,0);
             isGrappling = false;
+            isSitting = false;
             grappleLine.visible = false;
             
             window.equipTool(-1);
@@ -1299,99 +1542,24 @@
             });
         }
 
-        // --- ENGINE MODES ---
-        window.toggleEngineMode = function toggleEngineMode() {
-            if(ENGINE_MODE === 'EDIT') {
-                ENGINE_MODE = 'PLAY';
-                document.getElementById('mode-indicator').innerText = 'PLAY MODE';
-                document.getElementById('mode-indicator').className = 'text-xs bg-green-900/50 border border-green-700 text-green-400 px-3 py-1 rounded font-bold mr-4';
-                document.getElementById('btn-play').style.display = 'none';
-                document.getElementById('btn-stop').style.display = 'flex';
-                document.getElementById('editor-tools').classList.add('hidden');
-                document.getElementById('play-hud').classList.replace('hidden', 'flex');
-                
-                transformControl.detach();
-
-                spawnPoints.forEach(s => s.material.opacity = 0.0);
-
-                objects.forEach(obj => {
-                    if (obj.userData.script && obj.userData.type !== 'TV') {
-                        try {
-                            obj.userData.runScript = new Function('block', 'player', 'time', 'delta', 'game', obj.userData.script);
-                            obj.userData.initialPos = obj.position.clone();
-                            obj.userData.initialRot = obj.rotation.clone();
-                            obj.userData.init = false; 
-                            obj.userData.onClick = null;
-                            obj.userData.onTouch = null;
-                        } catch (e) {}
-                    }
-                });
-
-                inventory = [];
-                window.equipTool(-1);
-
-                activeCheckpoint = null;
-                respawnPlayer();
-
-            } else {
-                ENGINE_MODE = 'EDIT';
-                document.getElementById('mode-indicator').innerText = 'EDIT MODE';
-                document.getElementById('mode-indicator').className = 'text-xs bg-blue-900/50 border border-blue-700 text-blue-300 px-3 py-1 rounded font-bold mr-4';
-                document.getElementById('btn-play').style.display = 'flex';
-                document.getElementById('btn-stop').style.display = 'none';
-                document.getElementById('editor-tools').classList.remove('hidden');
-                document.getElementById('play-hud').classList.replace('flex', 'hidden');
-                
-                spawnPoints.forEach(s => s.material.opacity = 0.4);
-                
-                objects.forEach(obj => {
-                    if (obj.userData.initialPos) {
-                        obj.position.copy(obj.userData.initialPos);
-                        obj.rotation.copy(obj.userData.initialRot);
-                        delete obj.userData.runScript; delete obj.userData.initialPos; delete obj.userData.initialRot;
-                    }
-                    if (obj.userData.type === 'Tool') {
-                        obj.visible = true;
-                        obj.userData.isPickedUp = false;
-                    }
-                });
-
-                respawnPlayer();
-                window.setEditorTool(EDITOR_TOOL); 
-            }
-        }
-
-        function respawnPlayer() {
-            velocity.set(0,0,0); isRagdolled = false;
-            isGrappling = false; grappleLine.visible = false;
-            playerHealth = 100; updateHealth(0);
-            
-            ragdollParts.forEach(p => scene.remove(p)); ragdollParts = [];
-            myAvatarMesh.visible = true; myAvatarMesh.rotation.set(0,0,0);
-            myAvatarMesh.userData.head.visible = (activeCamera === thirdPersonCamera);
-
-            if (activeCheckpoint) {
-                playerObject.position.copy(activeCheckpoint);
-            } else if (spawnPoints.length > 0) {
-                const sp = spawnPoints[Math.floor(Math.random() * spawnPoints.length)];
-                playerObject.position.set(sp.position.x, sp.position.y + 9, sp.position.z);
-            } else { playerObject.position.set(0, 9, 0); }
-            
-            if (activeCamera === camera && !isInteracting) {
-                lockPointer();
-            }
-        }
-
         // --- LEVEL SERIALIZATION ---
+        function extractBlockData(obj, list) {
+            if (obj === baseplate || obj === modelerBaseplate || !obj.userData || !obj.userData.type) return;
+            const data = {
+                px: obj.position.x, py: obj.position.y, pz: obj.position.z,
+                rx: obj.rotation.x, ry: obj.rotation.y, rz: obj.rotation.z,
+                sx: obj.scale.x, sy: obj.scale.y, sz: obj.scale.z,
+                type: obj.userData.type, color: obj.userData.colorHex, 
+                script: obj.userData.script || "",
+                uuid: obj.uuid, parentUuid: obj.parent && obj.parent !== scene && obj.parent.userData && obj.parent.userData.type ? obj.parent.uuid : null
+            };
+            list.push(data);
+        }
+        
         window.saveLevel = function saveLevel() {
-            const levelData = objects.filter(o => o !== baseplate).map(o => ({
-                px: o.position.x, py: o.position.y, pz: o.position.z,
-                rx: o.rotation.x, ry: o.rotation.y, rz: o.rotation.z,
-                sx: o.scale.x, sy: o.scale.y, sz: o.scale.z,
-                type: o.userData.type, color: o.userData.colorHex, 
-                script: o.userData.script || ""
-            }));
-            localStorage.setItem('weblox_studio_save', JSON.stringify(levelData));
+            const levelData = [];
+            objects.forEach(o => extractBlockData(o, levelData));
+            localStorage.setItem('weblox_studio_save', JSON.stringify({ world: levelData, custom: customModels }));
             showNotification("Workspace Saved Locally!");
         }
 
@@ -1400,17 +1568,37 @@
             if(!dataStr) { showNotification("No local save found."); return; }
             window.clearLevel(false);
             try {
-                JSON.parse(dataStr).forEach(item => {
+                const parsedFull = JSON.parse(dataStr);
+                const parsedWorld = parsedFull.world ? parsedFull.world : parsedFull; // Backwards compatibility
+                
+                if (parsedFull.custom) {
+                    customModels = parsedFull.custom;
+                    initUI();
+                }
+
+                const mapIdToMesh = {};
+                
+                parsedWorld.forEach(item => {
                     const mesh = instantiateBlock(new THREE.Vector3(item.px, item.py, item.pz), item.type, item.color, item.script, item.sx || item.scale || 1, item.sy || item.scale || 1, item.sz || item.scale || 1);
                     if (item.ry !== undefined) mesh.rotation.set(item.rx || 0, item.ry || 0, item.rz || 0);
+                    mapIdToMesh[item.uuid] = mesh;
+                    mesh.userData.savedParentId = item.parentUuid; 
                 });
+                
+                Object.values(mapIdToMesh).forEach(mesh => {
+                    if (mesh.userData.savedParentId && mapIdToMesh[mesh.userData.savedParentId]) {
+                        mapIdToMesh[mesh.userData.savedParentId].add(mesh);
+                    }
+                    delete mesh.userData.savedParentId;
+                });
+                
                 showNotification("Workspace Loaded!");
             } catch(e) { showNotification("Error loading save."); }
         }
 
         window.clearLevel = function clearLevel(notify = true) {
             transformControl.detach();
-            const toRemove = objects.filter(o => o !== baseplate);
+            const toRemove = [...objects.filter(o => o !== baseplate && o !== modelerBaseplate)];
             toRemove.forEach(o => destroyBlock(o));
             if(notify) showNotification("Workspace Cleared");
         }
@@ -1422,14 +1610,13 @@
             const name = document.getElementById('publish-name').value.trim();
             if(!name) { showNotification("Enter a valid name"); return; }
             if(!currentUser || !db) { showNotification("Database connecting... try again."); return; }
-            const levelData = objects.filter(o => o !== baseplate).map(o => ({
-                px: o.position.x, py: o.position.y, pz: o.position.z, rx: o.rotation.x, ry: o.rotation.y, rz: o.rotation.z,
-                sx: o.scale.x, sy: o.scale.y, sz: o.scale.z,
-                type: o.userData.type, color: o.userData.colorHex, script: o.userData.script || ""
-            }));
+            
+            const levelData = [];
+            objects.forEach(o => extractBlockData(o, levelData));
+            
             try {
                 const gamesRef = collection(db, 'artifacts', appId, 'public', 'data', 'games');
-                await addDoc(gamesRef, { name: name, author: currentUser.uid.substring(0, 6), data: JSON.stringify(levelData), timestamp: Date.now() });
+                await addDoc(gamesRef, { name: name, author: currentUser.uid.substring(0, 6), data: JSON.stringify({ world: levelData }), timestamp: Date.now() });
                 showNotification("Success! Published to Weblox Player Client!"); 
                 window.closePublishModal();
             } catch(e) { showNotification("Failed to publish to Cloud."); }
@@ -1439,7 +1626,6 @@
         const playerRaycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(0, -1, 0), 0, 10);
         const horizRaycaster = new THREE.Raycaster(new THREE.Vector3(), new THREE.Vector3(), 0, 2.5);
 
-        // Define game API for scripts
         const gameAPI = {
             get playerPos() { return playerObject.position; },
             get playerVelocity() { return velocity; },
@@ -1502,7 +1688,6 @@
             return closestHit;
         }
         
-        // Define Day Cycle Colors
         const cycleStops = [
             { t: 0.0, sky: new THREE.Color(0x87CEEB), amb: new THREE.Color(0x606060), int: 0.8 }, // Noon
             { t: 0.25, sky: new THREE.Color(0xff7e67), amb: new THREE.Color(0x403030), int: 0.5 }, // Sunset
@@ -1602,15 +1787,15 @@
                 myAvatarMesh.rotation.y = cameraYaw;
                 
                 const speed = Math.sqrt(velocity.x*velocity.x + velocity.z*velocity.z);
-                let walkSpeed = speed; if(ENGINE_MODE === 'EDIT' && (moveUp || moveDown)) walkSpeed += 20;
-                animateRig(myAvatarMesh, walkSpeed, !canJump && !isRagdolled && ENGINE_MODE === 'PLAY');
+                let walkSpeed = speed; if((ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') && (moveUp || moveDown)) walkSpeed += 20;
+                animateRig(myAvatarMesh, walkSpeed, !canJump && !isRagdolled && ENGINE_MODE === 'PLAY' && !isSitting);
             }
 
             // Sync Player Yaw
             playerObject.rotation.y = cameraYaw;
 
             // Render Equipped Tool visually
-            if (equippedToolMesh && ENGINE_MODE === 'PLAY') {
+            if (equippedToolMesh && ENGINE_MODE === 'PLAY' && !isSitting) {
                 if (activeCamera === camera) {
                     const offset = new THREE.Vector3(1.5, -1.5, -3);
                     offset.applyEuler(new THREE.Euler(cameraPitch, cameraYaw, 0, 'YXZ'));
@@ -1623,6 +1808,9 @@
                     equippedToolMesh.position.copy(playerObject.position).add(offset);
                     equippedToolMesh.rotation.set(0, cameraYaw, 0, 'YXZ');
                 }
+            } else if (equippedToolMesh && isSitting) {
+                // Hide tool visually when sitting
+                equippedToolMesh.position.set(0,-1000,0);
             }
 
             // FOV Sprinting Effect
@@ -1644,8 +1832,9 @@
                     thirdPersonCamera.position.copy(playerObject.position).add(offset);
                     thirdPersonCamera.lookAt(playerObject.position);
                     
+                    const activeObjects = ENGINE_MODE === 'MODELER' ? [modelerBaseplate, ...modelerObjects] : objects;
                     const camRay = new THREE.Raycaster(playerObject.position, offset.clone().normalize(), 0, offset.length());
-                    const hits = camRay.intersectObjects(objects, false);
+                    const hits = camRay.intersectObjects(activeObjects, false);
                     if (hits.length > 0) { 
                         thirdPersonCamera.position.copy(hits[0].point); 
                         thirdPersonCamera.position.add(offset.clone().normalize().multiplyScalar(-0.5)); 
@@ -1657,39 +1846,51 @@
             }
 
             // Ghost Block logic for Editor
-            if (ENGINE_MODE === 'EDIT' && EDITOR_TOOL === 'BUILD' && !isRightMouseDown) {
+            if ((ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') && EDITOR_TOOL === 'BUILD' && !isRightMouseDown) {
                 if (activeCamera === camera && isPointerLocked) { mouse.x = 0; mouse.y = 0; }
                 raycaster.setFromCamera(mouse, activeCamera);
                 
-                const intersects = raycaster.intersectObjects(objects, false);
+                const activeObjects = ENGINE_MODE === 'MODELER' ? [modelerBaseplate, ...modelerObjects] : objects;
+                const intersects = raycaster.intersectObjects(activeObjects, false);
+                
                 if (intersects.length > 0 && intersects[0].distance <= 80) {
                     const intersect = intersects[0];
                     const pos = intersect.point.clone().add(intersect.face.normal);
                     pos.divideScalar(UNIT_SIZE).floor().multiplyScalar(UNIT_SIZE).addScalar(UNIT_SIZE / 2);
                     
                     const scaleOffset = (currentPlaceScale - 1) * (UNIT_SIZE / 2);
-                    pos.add(intersect.face.normal.clone().multiplyScalar(scaleOffset));
+                    
+                    const normalMatrix = new THREE.Matrix3().getNormalMatrix(intersect.object.matrixWorld);
+                    const worldNormal = intersect.face.normal.clone().applyMatrix3(normalMatrix).normalize();
+                    pos.add(worldNormal.clone().multiplyScalar(scaleOffset));
                     
                     ghostBlock.position.copy(pos);
                     ghostBlock.scale.set(currentPlaceScale, currentPlaceScale, currentPlaceScale);
                     
-                    const typeDef = Object.values(BLOCK_TYPES).find(t => t.id === currentType.id);
-                    if (typeDef.isTool) ghostBlock.scale.set(currentPlaceScale * 0.5, currentPlaceScale * 0.5, currentPlaceScale * 0.5);
+                    if (!currentType.isCustom) {
+                        const typeDef = Object.values(BLOCK_TYPES).find(t => t.id === currentType.id) || BLOCK_TYPES.NORMAL;
+                        if (typeDef.isTool) ghostBlock.scale.set(currentPlaceScale * 0.5, currentPlaceScale * 0.5, currentPlaceScale * 0.5);
 
-                    ghostBlock.visible = true;
-                    
-                    ghostMesh.geometry = typeDef.shape === 'ramp' ? rampGeo : typeDef.shape === 'cylinder' ? cylinderGeo : typeDef.shape === 'sphere' ? sphereGeo : typeDef.shape === 'cone' ? coneGeo : typeDef.shape === 'torus' ? torusGeo : blockGeo;
-                    ghostEdges.geometry = new THREE.EdgesGeometry(ghostMesh.geometry);
-                    
-                    ghostMesh.material.color.setHex(typeDef.colorOverride !== null ? typeDef.colorOverride : currentColorHex);
-                    
-                    if (typeDef.id === 'TV') {
-                        const euler = new THREE.Euler(0, 0, 0, 'YXZ');
-                        euler.setFromQuaternion(activeCamera.quaternion);
-                        ghostBlock.rotation.set(0, Math.round(euler.y / (Math.PI / 2)) * (Math.PI / 2) + Math.PI, 0);
+                        ghostMesh.geometry = typeDef.shape === 'ramp' ? rampGeo : typeDef.shape === 'cylinder' ? cylinderGeo : typeDef.shape === 'sphere' ? sphereGeo : typeDef.shape === 'cone' ? coneGeo : typeDef.shape === 'torus' ? torusGeo : blockGeo;
+                        ghostEdges.geometry = new THREE.EdgesGeometry(ghostMesh.geometry);
+                        ghostMesh.material.color.setHex(typeDef.colorOverride !== null ? typeDef.colorOverride : currentColorHex);
+                        
+                        if (typeDef.id === 'TV') {
+                            const euler = new THREE.Euler(0, 0, 0, 'YXZ');
+                            euler.setFromQuaternion(activeCamera.quaternion);
+                            ghostBlock.rotation.set(0, Math.round(euler.y / (Math.PI / 2)) * (Math.PI / 2) + Math.PI, 0);
+                        } else {
+                            ghostBlock.rotation.set(0, currentPlaceRotation, 0);
+                        }
                     } else {
+                        // Custom Group ghosting (simplified to a box outline for custom models)
+                        ghostMesh.geometry = blockGeo;
+                        ghostEdges.geometry = new THREE.EdgesGeometry(blockGeo);
+                        ghostMesh.material.color.setHex(0x8E24AA);
                         ghostBlock.rotation.set(0, currentPlaceRotation, 0);
                     }
+
+                    ghostBlock.visible = true;
                 } else {
                     ghostBlock.visible = false;
                 }
@@ -1703,10 +1904,12 @@
                                  document.getElementById('publish-modal').classList.contains('hidden') &&
                                  !isTyping();
 
-            if (!isRagdolled && isGameActive && !isTransformDragging) { 
+            if (!isRagdolled && isGameActive && !isTransformDragging && !isSitting) { 
                 direction.z = Number(moveFwd) - Number(moveBwd); 
                 direction.x = Number(moveR) - Number(moveL); 
                 direction.normalize(); 
+            } else if (isSitting) {
+                direction.set(0,0,0);
             } else { 
                 direction.set(0,0,0); 
             }
@@ -1717,7 +1920,7 @@
                 if(cd) cd.innerText = `X:${playerObject.position.x.toFixed(1)} Y:${playerObject.position.y.toFixed(1)} Z:${playerObject.position.z.toFixed(1)}`;
             }
 
-            if (ENGINE_MODE === 'EDIT') {
+            if (ENGINE_MODE === 'EDIT' || ENGINE_MODE === 'MODELER') {
                 velocity.x -= velocity.x * 10.0 * delta; velocity.z -= velocity.z * 10.0 * delta; velocity.y -= velocity.y * 10.0 * delta; 
                 const speed = 400.0;
                 if (!isRagdolled) {
@@ -1745,6 +1948,15 @@
                 if (isRagdolled) {
                     ragdollTimer -= delta;
                     if (ragdollTimer <= 0) respawnPlayer();
+                } else if (isSitting && sitTarget) {
+                    // Update Player Position to perfectly follow moving Seat blocks!
+                    const seatWorldPos = new THREE.Vector3();
+                    sitTarget.getWorldPosition(seatWorldPos);
+                    playerObject.position.copy(seatWorldPos);
+                    
+                    const eulerScale = sitTarget.scale.y * UNIT_SIZE / 2;
+                    playerObject.position.y += Math.max(3, eulerScale + 4);
+                    velocity.set(0,0,0);
                 } else {
                     velocity.x -= velocity.x * (isGrappling ? 1.0 : 10.0) * delta; 
                     velocity.z -= velocity.z * (isGrappling ? 1.0 : 10.0) * delta; 
@@ -1777,6 +1989,12 @@
                         } else if (blockType === 'Bouncer') {
                             velocity.y = 400; canJump = false; isGrappling = false; grappleLine.visible = false;
                             playSound('jump');
+                        } else if (blockType === 'Seat' && !isSitting && !isGrappling) {
+                            isSitting = true;
+                            sitTarget = hitBlock;
+                            velocity.set(0,0,0);
+                            playSound('place');
+                            showNotification("Sitting down! Press SPACE to jump off.");
                         } else {
                             velocity.y = Math.max(0, velocity.y); canJump = true;
                             playerPos.y = intersections[0].point.y + 9;
@@ -1786,8 +2004,10 @@
                     // Checkpoint touch logic (soft trigger)
                     const cps = objects.filter(o => o.userData.type === 'Checkpoint');
                     cps.forEach(cp => {
-                        if (cp.position.distanceTo(playerPos) < 15) {
-                            const newSpawn = cp.position.clone(); newSpawn.y += 9;
+                        const cpWorldPos = new THREE.Vector3();
+                        cp.getWorldPosition(cpWorldPos);
+                        if (cpWorldPos.distanceTo(playerPos) < 15) {
+                            const newSpawn = cpWorldPos.clone(); newSpawn.y += 9;
                             if (!activeCheckpoint || activeCheckpoint.distanceTo(newSpawn) > 1) {
                                 activeCheckpoint = newSpawn;
                                 showNotification("Checkpoint Saved!");
